@@ -1,5 +1,0 @@
-.env
-*.pem
-venv/
-__pycache__/
-*.tar.gz
