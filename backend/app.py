@@ -93,3 +93,27 @@ def login():
     finally:
         conn.close()
 
+@app.route('/api/files', methods=['POST'])
+@login_required
+def upload_file():
+    if 'file' not in request.files: return jsonify({'message': 'No file'}), 400
+    file = request.files['file']
+    if file.filename == '': return jsonify({'message': 'No selected file'}), 400
+    
+    s3_key = f"{g.user_id}/{file.filename}"
+    try:
+        s3_client.upload_fileobj(file, S3_BUCKET, s3_key, ExtraArgs={'ContentType': file.content_type})
+    except ClientError as e:
+        return jsonify({'message': str(e)}), 500
+
+    file_size = request.content_length
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            sql = "INSERT INTO files (user_id, filename, s3_key, s3_bucket, file_size, mime_type) VALUES (%s, %s, %s, %s, %s, %s)"
+            cursor.execute(sql, (g.user_id, file.filename, s3_key, S3_BUCKET, file_size, file.content_type))
+        conn.commit()
+        return jsonify({'message': 'File uploaded successfully'}), 201
+    finally:
+        conn.close()
+
