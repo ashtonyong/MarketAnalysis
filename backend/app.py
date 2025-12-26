@@ -45,3 +45,7 @@ def login_required(f):
     wrapper.__name__ = f.__name__
     return wrapper
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({'status': 'healthy', 'timestamp': datetime.datetime.now().isoformat()}), 200
+
