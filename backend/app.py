@@ -130,3 +130,19 @@ def list_files():
     finally:
         conn.close()
 
+@app.route('/api/files/<int:file_id>/download', methods=['GET'])
+@login_required
+def download_file(file_id):
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            sql = "SELECT s3_key, filename FROM files WHERE id = %s AND user_id = %s"
+            cursor.execute(sql, (file_id, g.user_id))
+            file_record = cursor.fetchone()
+        if not file_record: return jsonify({'message': 'File not found'}), 404
+        
+        url = s3_client.generate_presigned_url('get_object', Params={'Bucket': S3_BUCKET, 'Key': file_record['s3_key'], 'ResponseContentDisposition': f'attachment; filename="{file_record["filename"]}"'}, ExpiresIn=3600)
+        return jsonify({'download_url': url}), 200
+    finally:
+        conn.close()
+
