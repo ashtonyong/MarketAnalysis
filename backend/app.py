@@ -117,3 +117,16 @@ def upload_file():
     finally:
         conn.close()
 
+@app.route('/api/files', methods=['GET'])
+@login_required
+def list_files():
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            sql = "SELECT id, filename, file_size, upload_date FROM files WHERE user_id = %s AND is_deleted = 0"
+            cursor.execute(sql, (g.user_id,))
+            files = cursor.fetchall()
+        return jsonify({'files': files}), 200
+    finally:
+        conn.close()
+
