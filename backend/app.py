@@ -146,3 +146,24 @@ def download_file(file_id):
     finally:
         conn.close()
 
+@app.route('/api/files/<int:file_id>', methods=['DELETE'])
+@login_required
+def delete_file(file_id):
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            sql = "SELECT s3_key FROM files WHERE id = %s AND user_id = %s"
+            cursor.execute(sql, (file_id, g.user_id))
+            file_record = cursor.fetchone()
+            if not file_record: return jsonify({'message': 'Not found'}), 404
+            
+            s3_client.delete_object(Bucket=S3_BUCKET, Key=file_record['s3_key'])
+            sql_update = "UPDATE files SET is_deleted = 1 WHERE id = %s"
+            cursor.execute(sql_update, (file_id,))
+        conn.commit()
+        return jsonify({'message': 'Deleted'}), 200
+    finally:
+        conn.close()
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
