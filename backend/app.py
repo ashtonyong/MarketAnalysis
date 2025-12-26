@@ -49,3 +49,24 @@ def login_required(f):
 def health_check():
     return jsonify({'status': 'healthy', 'timestamp': datetime.datetime.now().isoformat()}), 200
 
+@app.route('/api/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    username = data.get('username')
+    email = data.get('email')
+    password = data.get('password')
+    if not username or not email or not password:
+        return jsonify({'message': 'Missing fields'}), 400
+    password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            sql = "INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s)"
+            cursor.execute(sql, (username, email, password_hash))
+        conn.commit()
+        return jsonify({'message': 'User registered successfully'}), 201
+    except pymysql.err.IntegrityError:
+        return jsonify({'message': 'User already exists'}), 409
+    finally:
+        conn.close()
+
