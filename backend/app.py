@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, g, render_template
+from werkzeug.utils import secure_filename
 from flask_cors import CORS
 import pymysql
 import boto3
@@ -126,13 +127,15 @@ def upload_file():
     file = request.files['file']
     if file.filename == '': return jsonify({'message': 'No selected file'}), 400
     
-    s3_key = f"{g.user_id}/{file.filename}"
+    filename = secure_filename(file.filename)
+    s3_key = f"{g.user_id}/{filename}"
     
     try:
         if not S3_BUCKET:
              return jsonify({'message': 'Server misconfiguration: S3_BUCKET missing'}), 500
 
-        s3_client.upload_fileobj(file, S3_BUCKET, s3_key, ExtraArgs={'ContentType': file.content_type})
+        # Removed ExtraArgs to avoid permission errors
+        s3_client.upload_fileobj(file, S3_BUCKET, s3_key)
     except ClientError as e:
         return jsonify({'message': f"S3 Upload Error: {str(e)}"}), 500
     except Exception as e:
@@ -144,7 +147,7 @@ def upload_file():
     try:
         with conn.cursor() as cursor:
             sql = "INSERT INTO files (user_id, filename, s3_key, s3_bucket, file_size, mime_type) VALUES (%s, %s, %s, %s, %s, %s)"
-            cursor.execute(sql, (g.user_id, file.filename, s3_key, S3_BUCKET, file_size, file.content_type))
+            cursor.execute(sql, (g.user_id, filename, s3_key, S3_BUCKET, file_size, file.content_type))
         conn.commit()
         return jsonify({'message': 'File uploaded successfully'}), 201
     except Exception as e:
