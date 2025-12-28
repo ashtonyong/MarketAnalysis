@@ -127,18 +127,28 @@ def upload_file():
     file = request.files['file']
     if file.filename == '': return jsonify({'message': 'No selected file'}), 400
     
-    filename = secure_filename(file.filename)
-    s3_key = f"{g.user_id}/{filename}"
+    # Generate simple safe filename (e.g. file_123456... .png)
+    import uuid
+    ext = os.path.splitext(file.filename)[1]
+    if not ext: ext = ""
+    safe_filename = f"file_{uuid.uuid4().hex}{ext}"
+    
+    # Flatten path: No subfolders
+    s3_key = safe_filename
+    
+    print(f"DEBUG: Uploading to Bucket: {S3_BUCKET}, Key: {s3_key}")
     
     try:
         if not S3_BUCKET:
              return jsonify({'message': 'Server misconfiguration: S3_BUCKET missing'}), 500
 
-        # Removed ExtraArgs to avoid permission errors
+        # Upload without ExtraArgs (No ACL, No ContentType)
         s3_client.upload_fileobj(file, S3_BUCKET, s3_key)
     except ClientError as e:
+        print(f"DEBUG: ClientError: {e}")
         return jsonify({'message': f"S3 Upload Error: {str(e)}"}), 500
     except Exception as e:
+        print(f"DEBUG: General Error: {e}")
         return jsonify({'message': f"Upload Error: {str(e)}"}), 500
 
     file_size = request.content_length 
@@ -146,8 +156,11 @@ def upload_file():
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
+            # Save the safe_filename as the s3_key. 
+            # We can keep the ORIGINAL filename in 'filename' column for display, 
+            # but s3_key MUST be the one we used for upload.
             sql = "INSERT INTO files (user_id, filename, s3_key, s3_bucket, file_size, mime_type) VALUES (%s, %s, %s, %s, %s, %s)"
-            cursor.execute(sql, (g.user_id, filename, s3_key, S3_BUCKET, file_size, file.content_type))
+            cursor.execute(sql, (g.user_id, file.filename, s3_key, S3_BUCKET, file_size, file.content_type))
         conn.commit()
         return jsonify({'message': 'File uploaded successfully'}), 201
     except Exception as e:
