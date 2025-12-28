@@ -214,7 +214,7 @@
     </div>
 
     <script>
-        const API_URL = 'http://cloudfinal-us-alb-1031552364.us-east-1.elb.amazonaws.com';
+        const API_URL = window.location.origin;
 
         function showSection(id) {
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
