@@ -1,0 +1,12 @@
+[Unit]
+Description=CMS API Service
+After=network.target
+
+[Service]
+User=ec2-user
+WorkingDirectory=/home/ec2-user/backend
+ExecStart=/home/ec2-user/backend/venv/bin/python app.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
