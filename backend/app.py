@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, g
+from flask import Flask, request, jsonify, g, render_template
 from flask_cors import CORS
 import pymysql
 import boto3
@@ -56,6 +56,10 @@ def login_required(f):
         return f(*args, **kwargs)
     wrapper.__name__ = f.__name__
     return wrapper
+
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 @app.route('/health', methods=['GET'])
 def health_check():
