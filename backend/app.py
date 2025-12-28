@@ -18,7 +18,7 @@ app = Flask(__name__)
 CORS(app)
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'devkey123')
-S3_BUCKET = os.getenv('S3_BUCKET')
+S3_BUCKET = os.getenv('S3_BUCKET', 'cloud-demo-bucket-2025-v2')
 S3_REGION = os.getenv('S3_REGION', 'us-east-1')
 
 # Initialize S3 Client from Environment Variables
