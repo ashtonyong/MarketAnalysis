@@ -75,8 +75,8 @@ def register():
         with conn.cursor() as cursor:
             # Reverted to use 'password' column (plaintext storage for compatibility with existing schema)
             # Assuming 'email' column exists. If this fails, we might need to remove email.
-            sql = "INSERT INTO users (username, email, password) VALUES (%s, %s, %s)"
-            cursor.execute(sql, (username, email, password))
+            sql = "INSERT INTO users (username, password) VALUES (%s, %s)"
+            cursor.execute(sql, (username, password))
         conn.commit()
         return jsonify({'message': 'User registered successfully'}), 201
     except pymysql.err.IntegrityError:
