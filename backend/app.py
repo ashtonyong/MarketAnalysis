@@ -61,7 +61,7 @@ def login_required(f):
 def health_check():
     return jsonify({'status': 'healthy', 'timestamp': datetime.datetime.now().isoformat()}), 200
 
-@app.route('/api/register', methods=['POST'])
+@app.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
     username = data.get('username')
@@ -87,7 +87,7 @@ def register():
     finally:
         conn.close()
 
-@app.route('/api/login', methods=['POST'])
+@app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
     username = data.get('username')

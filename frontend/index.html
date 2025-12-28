@@ -245,7 +245,7 @@
             const password = document.getElementById('regPassword').value;
 
             try {
-                const res = await fetch(`${API_URL}/api/register`, {
+                const res = await fetch(`${API_URL}/register`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, email, password })
@@ -267,7 +267,7 @@
             const password = document.getElementById('loginPassword').value;
 
             try {
-                const res = await fetch(`${API_URL}/api/login`, {
+                const res = await fetch(`${API_URL}/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username, password })
