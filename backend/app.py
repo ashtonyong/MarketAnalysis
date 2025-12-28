@@ -142,8 +142,8 @@ def upload_file():
         if not S3_BUCKET:
              return jsonify({'message': 'Server misconfiguration: S3_BUCKET missing'}), 500
 
-        # Upload without ExtraArgs (No ACL, No ContentType)
-        s3_client.upload_fileobj(file, S3_BUCKET, s3_key)
+        # Upload with AES256 Encryption (Required for most Lab policies)
+        s3_client.upload_fileobj(file, S3_BUCKET, s3_key, ExtraArgs={'ServerSideEncryption': 'AES256'})
     except ClientError as e:
         print(f"DEBUG: ClientError: {e}")
         return jsonify({'message': f"S3 Upload Error: {str(e)}"}), 500
