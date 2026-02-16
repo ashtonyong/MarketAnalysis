@@ -63,7 +63,7 @@ with tab_tv:
             key='tv_timeframe'
         )
     with tv_col3:
-        tv_vp = st.checkbox("Volume Profile", value=True, key='tv_vp')
+        tv_vp = st.checkbox("Volume Profile", value=False, key='tv_vp')
 
     TradingViewWidget.render_chart(
         symbol=ticker,
