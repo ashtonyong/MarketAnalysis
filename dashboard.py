@@ -52,7 +52,7 @@ tab_tv, tab1, tab2, tab5, tab6, tab7, tab8, tab3, tab4 = st.tabs([
 
 # --- TAB TV: TRADINGVIEW PROFESSIONAL CHART ---
 with tab_tv:
-    tv_col1, tv_col2, tv_col3 = st.columns([2, 1, 1])
+    tv_col1, tv_col2 = st.columns([3, 1])
     with tv_col1:
         st.caption("Use drawing tools & indicators from the chart toolbar. Click symbol name to search.")
     with tv_col2:
@@ -62,15 +62,13 @@ with tab_tv:
             index=2,
             key='tv_timeframe'
         )
-    with tv_col3:
-        tv_vp = st.checkbox("Volume Profile", value=False, key='tv_vp')
 
     TradingViewWidget.render_chart(
         symbol=ticker,
         interval=tv_interval,
         height=800,
         theme='dark',
-        show_volume_profile=tv_vp,
+        show_volume_profile=False,
         allow_symbol_change=True
     )
 
