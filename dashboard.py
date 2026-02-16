@@ -29,15 +29,102 @@ from alerts_engine import AlertsEngine, WatchlistManager
 from trade_journal import TradeJournal, TickerNotes, UserPreferences
 import numpy as np
 
-st.set_page_config(layout="wide", page_title="Volume Profile Dashboard")
+st.set_page_config(layout="wide", page_title="Volume Profile Terminal", page_icon="📊")
 
-# Sidebar collapse CSS
+# --- Professional Dark Theme CSS ---
 st.markdown("""
 <style>
-    [data-testid="stSidebar"][aria-expanded="true"] { min-width: 280px; max-width: 280px; }
-    [data-testid="stSidebar"][aria-expanded="false"] { min-width: 0px; max-width: 0px; margin-left: -280px; }
-    .stTabs [data-baseweb="tab-list"] { gap: 2px; }
-    .stTabs [data-baseweb="tab"] { padding: 4px 8px; font-size: 13px; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+    /* Global */
+    html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
+    .main .block-container { padding: 1rem 1.5rem; max-width: 100%; }
+
+    /* Sidebar */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #0d1117 0%, #161b22 100%);
+        border-right: 1px solid rgba(99,110,123,0.2);
+    }
+    [data-testid="stSidebar"][aria-expanded="true"] { min-width: 260px; max-width: 260px; }
+    [data-testid="stSidebar"][aria-expanded="false"] { min-width: 0px; max-width: 0px; margin-left: -260px; }
+    [data-testid="stSidebar"] .stSelectbox label,
+    [data-testid="stSidebar"] .stTextInput label { font-size: 12px; color: #8b949e; }
+
+    /* Tab bar */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 0; background: rgba(22,27,34,0.8);
+        border-radius: 8px; padding: 4px;
+        border: 1px solid rgba(99,110,123,0.15);
+    }
+    .stTabs [data-baseweb="tab"] {
+        padding: 8px 16px; font-size: 13px; font-weight: 500;
+        border-radius: 6px; color: #8b949e;
+        transition: all 0.2s ease;
+    }
+    .stTabs [data-baseweb="tab"]:hover { color: #e6edf3; background: rgba(99,110,123,0.15); }
+    .stTabs [aria-selected="true"] {
+        background: rgba(56,139,253,0.15) !important;
+        color: #58a6ff !important; font-weight: 600;
+        border-bottom: 2px solid #58a6ff !important;
+    }
+
+    /* Metric cards */
+    [data-testid="stMetric"] {
+        background: linear-gradient(135deg, rgba(22,27,34,0.9), rgba(13,17,23,0.9));
+        border: 1px solid rgba(99,110,123,0.15);
+        border-radius: 10px; padding: 14px 18px;
+        backdrop-filter: blur(10px);
+        transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+    [data-testid="stMetric"]:hover {
+        transform: translateY(-1px);
+        border-color: rgba(56,139,253,0.3);
+    }
+    [data-testid="stMetricLabel"] { font-size: 11px !important; color: #8b949e !important; text-transform: uppercase; letter-spacing: 0.5px; }
+    [data-testid="stMetricValue"] { font-size: 22px !important; font-weight: 600 !important; color: #e6edf3 !important; }
+
+    /* Buttons */
+    .stButton > button {
+        background: linear-gradient(135deg, #238636, #2ea043) !important;
+        color: white !important; border: none !important;
+        border-radius: 8px; font-weight: 500;
+        padding: 8px 20px; font-size: 13px;
+        transition: all 0.2s ease;
+    }
+    .stButton > button:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(35,134,54,0.4); }
+
+    /* Expanders */
+    .streamlit-expanderHeader {
+        background: rgba(22,27,34,0.6) !important;
+        border-radius: 8px; font-size: 13px;
+    }
+
+    /* Dataframes */
+    .stDataFrame { border-radius: 8px; overflow: hidden; }
+
+    /* Section dividers */
+    hr { border-color: rgba(99,110,123,0.15) !important; margin: 1rem 0 !important; }
+
+    /* Headers */
+    h1, h2, h3 { color: #e6edf3 !important; font-weight: 600 !important; }
+    h2 { font-size: 20px !important; border-bottom: 1px solid rgba(99,110,123,0.15); padding-bottom: 8px; }
+
+    /* Captions */
+    .stCaption { color: #8b949e !important; }
+
+    /* Download buttons */
+    .stDownloadButton > button {
+        background: rgba(99,110,123,0.2) !important;
+        border: 1px solid rgba(99,110,123,0.3) !important;
+        color: #e6edf3 !important;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .main .block-container { padding: 0.5rem; }
+        [data-testid="stSidebar"][aria-expanded="true"] { min-width: 100%; max-width: 100%; }
+        .stTabs [data-baseweb="tab"] { padding: 6px 10px; font-size: 11px; }
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -154,15 +241,10 @@ if 'run' not in st.session_state:
 
 
 # --- tabs ---
-# Define tabs early to prevent resetting on interaction
-(tab_my, tab_tv, tab1, tab2, tab5, tab6, tab7, tab8, tab3, tab4,
- tab_mtf, tab_corr, tab_wl, tab_news, tab_cal, tab_opt) = st.tabs([
-    "My Dashboard",
-    "TradingView Chart",
-    "Market Analysis", "Order Flow", "Advanced Analytics",
-    "Scanner", "Sessions", "Risk Calculator",
-    "Backtester", "AI Insights",
-    "Multi-TF", "Correlation", "Watchlist", "News", "Calendar", "Options"
+# Define 8 consolidated tabs
+(tab_my, tab_tv, tab1, tab2, tab_analytics, tab_tools, tab_news, tab_research) = st.tabs([
+    "🏠 Home", "📈 Chart", "🔍 Analysis", "📊 Order Flow",
+    "⚡ Analytics", "🛠 Tools", "📰 News", "🧪 Research"
 ])
 
 # --- TAB MY: MY DASHBOARD ---
@@ -760,734 +842,732 @@ with tab2:
             except Exception as e:
                 st.error(f"Order Flow Error: {e}")
 
-# --- TAB 5: ADVANCED ANALYTICS (Phase 8) ---
-with tab5:
-    st.subheader("Advanced Volume & Market Profile Analytics")
+# --- TAB: ANALYTICS (Advanced + Multi-TF + Correlation + Watchlist) ---
+with tab_analytics:
+    analytics_sub = st.tabs(["Advanced", "Multi-TF", "Correlation", "Watchlist"])
+    with analytics_sub[0]:
+        st.subheader("Advanced Volume & Market Profile Analytics")
+        adv_tabs = st.tabs(["Market Profile (TPO)", "Composite Profiles", "Volume Nodes", "Patterns & Stats"])
     
-    # Create tabs for sub-features
-    adv_tabs = st.tabs(["Market Profile (TPO)", "Composite Profiles", "Volume Nodes", "Patterns & Stats"])
-    
-    # 1. Market Profile (TPO)
-    with adv_tabs[0]:
-        st.markdown("### Market Profile (TPO)")
-        try:
-            mp_engine = MarketProfileEngine(ticker)
-            tpo_data = mp_engine.calculate_tpo_profile()
+        # 1. Market Profile (TPO)
+        with adv_tabs[0]:
+            st.markdown("### Market Profile (TPO)")
+            try:
+                mp_engine = MarketProfileEngine(ticker)
+                tpo_data = mp_engine.calculate_tpo_profile()
             
-            if tpo_data:
-                # Top Metrics
-                m1, m2, m3 = st.columns(3)
-                m1.metric("Day Type", tpo_data['day_type'])
-                m2.metric("IB Range", f"{tpo_data['initial_balance']['low']:.2f} - {tpo_data['initial_balance']['high']:.2f}")
-                m3.metric("Profile Shape", tpo_data['shape']['shape'], help=tpo_data['shape']['description'])
+                if tpo_data:
+                    # Top Metrics
+                    m1, m2, m3 = st.columns(3)
+                    m1.metric("Day Type", tpo_data['day_type'])
+                    m2.metric("IB Range", f"{tpo_data['initial_balance']['low']:.2f} - {tpo_data['initial_balance']['high']:.2f}")
+                    m3.metric("Profile Shape", tpo_data['shape']['shape'], help=tpo_data['shape']['description'])
                 
-                # TPO Chart (Text-based approximation)
-                st.write("#### TPO Structure")
-                tpo_container = st.container(height=600)
-                with tpo_container:
-                    # Create a dataframe for display
-                    tpo_df = pd.DataFrame(tpo_data['profile'])
-                    if not tpo_df.empty:
-                        # Format for display: Price | Letters
-                        tpo_df['Price'] = tpo_df['price'].apply(lambda x: f"{x:.2f}")
-                        tpo_df['Structure'] = tpo_df['letter_string']
-                        st.dataframe(
-                            tpo_df[['Price', 'Structure', 'tpo_count']], 
-                            use_container_width=True,
-                            height=550,
-                            hide_index=True
+                    # TPO Chart (Text-based approximation)
+                    st.write("#### TPO Structure")
+                    tpo_container = st.container(height=600)
+                    with tpo_container:
+                        # Create a dataframe for display
+                        tpo_df = pd.DataFrame(tpo_data['profile'])
+                        if not tpo_df.empty:
+                            # Format for display: Price | Letters
+                            tpo_df['Price'] = tpo_df['price'].apply(lambda x: f"{x:.2f}")
+                            tpo_df['Structure'] = tpo_df['letter_string']
+                            st.dataframe(
+                                tpo_df[['Price', 'Structure', 'tpo_count']], 
+                                use_container_width=True,
+                                height=550,
+                                hide_index=True
+                            )
+                else:
+                    st.warning("No TPO data available.")
+            except Exception as e:
+                st.error(f"Error loading TPO: {e}")
+
+        # 2. Composite Profiles
+        with adv_tabs[1]:
+            st.markdown("### Composite Profiles (Multi-Day Value)")
+        
+            col_comp_set, col_comp_viz = st.columns([1, 3])
+        
+            with col_comp_set:
+                comp_days = st.select_slider("Composite Period (Days)", options=[5, 10, 20, 30, 60], value=10)
+                comp_weight = st.selectbox("Weighting", ["equal", "linear", "exponential"], index=2)
+            
+                if st.button("Build Composite"):
+                    st.session_state['run_composite'] = True
+                
+            if st.session_state.get('run_composite', False):
+                try:
+                    comp_builder = CompositeProfileBuilder(ticker)
+                    comp = comp_builder.build_composite(days=comp_days, weighting=comp_weight)
+                
+                    if comp:
+                        # Metrics
+                        c1, c2, c3 = st.columns(3)
+                        c1.metric("Composite POC", f"${comp['poc']:.2f}")
+                        c2.metric("Composite VAH", f"${comp['vah']:.2f}")
+                        c3.metric("Composite VAL", f"${comp['val']:.2f}")
+                    
+                        # Chart
+                        comp_df = pd.DataFrame(comp['profile'])
+                        fig_comp = px.bar(
+                            comp_df, y='Price', x='Volume', orientation='h',
+                            title=f"{comp_days}-Day Composite Profile ({comp_weight})",
+                            height=600
                         )
-            else:
-                st.warning("No TPO data available.")
-        except Exception as e:
-            st.error(f"Error loading TPO: {e}")
-
-    # 2. Composite Profiles
-    with adv_tabs[1]:
-        st.markdown("### Composite Profiles (Multi-Day Value)")
-        
-        col_comp_set, col_comp_viz = st.columns([1, 3])
-        
-        with col_comp_set:
-            comp_days = st.select_slider("Composite Period (Days)", options=[5, 10, 20, 30, 60], value=10)
-            comp_weight = st.selectbox("Weighting", ["equal", "linear", "exponential"], index=2)
-            
-            if st.button("Build Composite"):
-                st.session_state['run_composite'] = True
-                
-        if st.session_state.get('run_composite', False):
-            try:
-                comp_builder = CompositeProfileBuilder(ticker)
-                comp = comp_builder.build_composite(days=comp_days, weighting=comp_weight)
-                
-                if comp:
-                    # Metrics
-                    c1, c2, c3 = st.columns(3)
-                    c1.metric("Composite POC", f"${comp['poc']:.2f}")
-                    c2.metric("Composite VAH", f"${comp['vah']:.2f}")
-                    c3.metric("Composite VAL", f"${comp['val']:.2f}")
+                        # Add VA lines
+                        fig_comp.add_hline(y=comp['poc'], line_dash="dash", line_color="red", annotation_text="POC")
+                        fig_comp.add_hline(y=comp['vah'], line_dash="dash", line_color="green", annotation_text="VAH")
+                        fig_comp.add_hline(y=comp['val'], line_dash="dash", line_color="green", annotation_text="VAL")
+                        st.plotly_chart(fig_comp, use_container_width=True)
                     
-                    # Chart
-                    comp_df = pd.DataFrame(comp['profile'])
-                    fig_comp = px.bar(
-                        comp_df, y='Price', x='Volume', orientation='h',
-                        title=f"{comp_days}-Day Composite Profile ({comp_weight})",
-                        height=600
-                    )
-                    # Add VA lines
-                    fig_comp.add_hline(y=comp['poc'], line_dash="dash", line_color="red", annotation_text="POC")
-                    fig_comp.add_hline(y=comp['vah'], line_dash="dash", line_color="green", annotation_text="VAH")
-                    fig_comp.add_hline(y=comp['val'], line_dash="dash", line_color="green", annotation_text="VAL")
-                    st.plotly_chart(fig_comp, use_container_width=True)
-                    
-                    # Confluence Check
-                    st.markdown("#### Confluence Check")
-                    conf = comp_builder.compare_composites([5, 10, 20])
-                    if conf['confluence']:
-                        for c in conf['confluence']:
-                            st.success(f"Confluence Zone at ${c['price']:.2f} (Matches: {c['timeframes']})")
-                    else:
-                        st.info("No strong confluence detected across timeframes.")
-            except Exception as e:
-                st.error(f"Composite Error: {e}")
-
-    # 3. Volume Nodes
-    with adv_tabs[2]:
-        st.markdown("### Volume Nodes & Breakout Zones")
-        try:
-            # Use data from main engine or fetch fresh
-            vn_engine = VolumeProfileEngine(ticker, period="1mo")
-            vn_engine.calculate_volume_profile()
-            
-            detector = VolumeNodeDetector(vn_engine.volume_profile)
-            nodes = detector.find_all_nodes()
-            breakouts = detector.identify_breakout_zones()
-            
-            c_hvn, c_lvn = st.columns(2)
-            
-            with c_hvn:
-                st.markdown("#### High Volume Nodes (Support/Resistance)")
-                if nodes['hvn_clusters']:
-                    for hvn in nodes['hvn_clusters'][:5]: # Top 5
-                        st.success(f"**${hvn['price_center']:.2f}** (Vol: {int(hvn['total_volume'] / 1000)}k)")
-                        st.progress(min(hvn['strength']/100, 1.0))
-                else:
-                    st.info("No significant HVNs")
-                    
-            with c_lvn:
-                st.markdown("#### Breakout Zones (LVN Gaps)")
-                if breakouts:
-                    for bo in breakouts:
-                        st.warning(f"**Breakout Zone**: ${bo['support']:.2f} - ${bo['resistance']:.2f}")
-                        st.caption(f"Width: ${bo['width']:.2f}")
-                else:
-                    st.info("No clear breakout zones")
-                    
-        except Exception as e:
-            st.error(f"Node Detection Error: {e}")
-
-    # 4. Patterns & Stats
-    with adv_tabs[3]:
-        st.markdown("### Pattern Recognition & Deep Stats")
-        
-        try:
-            # Re-use engine data
-            stats_engine = VolumeProfileEngine(ticker, period="1mo")
-            stats_metrics = stats_engine.get_all_metrics()
-            
-            # Patterns
-            pat_det = ProfilePatternDetector(stats_engine.volume_profile, stats_engine.data)
-            patterns = pat_det.detect_all_patterns()
-            
-            st.markdown("#### Detected Patterns")
-            # Poor High/Low
-            p_cols = st.columns(2)
-            if patterns['poor_highs_lows']['poor_high']['detected']:
-                p_cols[0].error(f"Poor High at ${patterns['poor_highs_lows']['poor_high']['price']:.2f}")
-            else:
-                p_cols[0].success("Clean High")
-                
-            if patterns['poor_highs_lows']['poor_low']['detected']:
-                p_cols[1].error(f"Poor Low at ${patterns['poor_highs_lows']['poor_low']['price']:.2f}")
-            else:
-                p_cols[1].success("Clean Low")
-                
-            # Excess
-            if patterns['excess']:
-                for ex in patterns['excess']:
-                    st.info(f"tail: {ex['type']} at ${ex['price']:.2f} ({ex['interpretation']})")
-            
-            # VA Status
-            st.markdown("#### Value Area Status")
-            va_stat = patterns['value_area_status']
-            st.metric("Status", va_stat['status'], va_stat['interpretation'])
-            
-            st.markdown("---")
-            
-            # Statistics
-            st.markdown("#### Deep Statistics")
-            prof_stats = ProfileStatistics(
-                stats_engine.volume_profile, stats_engine.data, 
-                stats_metrics['poc'], stats_metrics['vah'], stats_metrics['val']
-            )
-            full_stats = prof_stats.calculate_all_statistics()
-            
-            row1 = st.columns(3)
-            row1[0].metric("Profile Efficiency", f"{full_stats['profile_efficiency']['efficiency_pct']:.1f}%")
-            row1[1].metric("Review Bias", full_stats['volume_distribution']['bias'])
-            row1[2].metric("Volatility", full_stats['profile_width']['volatility'])
-            
-            st.caption(f"Time in VA: {full_stats['time_in_va'].get('pct_inside_va', 0):.1f}%")
-            
-        except Exception as e:
-            st.error(f"Stats Error: {e}")
-
-# --- TAB 6: MULTI-ASSET SCANNER ---
-with tab6:
-    st.subheader("Multi-Asset Scanner")
-
-    scan_col1, scan_col2 = st.columns([2, 1])
-    with scan_col1:
-        watchlist_name = st.selectbox(
-            "Watchlist",
-            list(WATCHLISTS.keys()),
-            format_func=lambda x: f"{x} ({len(WATCHLISTS[x])} tickers)"
-        )
-    with scan_col2:
-        custom_tickers = st.text_input(
-            "Or enter custom tickers (comma-separated)",
-            placeholder="AAPL, MSFT, TSLA"
-        )
-
-    if st.button("Run Scanner"):
-        tickers_to_scan = (
-            [t.strip().upper() for t in custom_tickers.split(',') if t.strip()]
-            if custom_tickers
-            else WATCHLISTS[watchlist_name]
-        )
-
-        with st.spinner(f"Scanning {len(tickers_to_scan)} tickers..."):
-            scanner = VolumeProfileScanner(tickers_to_scan)
-            results = scanner.scan_all()
-
-            if results:
-                st.success(f"Scanned {len(results)} tickers successfully!")
-
-                # Top metrics
-                top = results[0]
-                s1, s2, s3 = st.columns(3)
-                s1.metric("Best Opportunity", top['ticker'], f"Score: {top['opportunity_score']}/100")
-                s2.metric("Price", f"${top['current_price']:.2f}")
-                s3.metric("Position", top['position'])
-
-                # Results table
-                scan_df = scanner.to_dataframe()
-                display_cols = ['ticker', 'opportunity_score', 'current_price',
-                                'poc', 'vah', 'val', 'position', 'distance_from_poc_pct', 'signal']
-                display_cols = [c for c in display_cols if c in scan_df.columns]
-                st.dataframe(
-                    scan_df[display_cols],
-                    use_container_width=True,
-                    hide_index=True,
-                    column_config={
-                        'opportunity_score': st.column_config.ProgressColumn(
-                            'Score', min_value=0, max_value=100, format='%d'
-                        ),
-                        'current_price': st.column_config.NumberColumn('Price', format='$%.2f'),
-                        'poc': st.column_config.NumberColumn('POC', format='$%.2f'),
-                        'vah': st.column_config.NumberColumn('VAH', format='$%.2f'),
-                        'val': st.column_config.NumberColumn('VAL', format='$%.2f'),
-                    }
-                )
-
-                # Export
-                csv = scan_df.to_csv(index=False)
-                st.download_button("Export CSV", csv, "scan_results.csv", "text/csv")
-
-            if scanner.errors:
-                with st.expander(f"{len(scanner.errors)} errors"):
-                    for err in scanner.errors:
-                        st.caption(f"{err['ticker']}: {err['error']}")
-
-# --- TAB 7: SESSION ANALYSIS ---
-with tab7:
-    st.subheader("Session Analysis (Asia / London / NY)")
-
-    if st.button("Analyze Sessions"):
-        with st.spinner(f"Analyzing sessions for {ticker}..."):
-            try:
-                sess_analyzer = SessionAnalyzer(ticker)
-                sessions = sess_analyzer.analyze_sessions()
-                comparison = sess_analyzer.get_session_comparison()
-
-                # Session cards
-                sc1, sc2, sc3 = st.columns(3)
-                session_cols = {'Asia': sc1, 'London': sc2, 'NY': sc3}
-                session_colors = {'Asia': 'ASIA', 'London': 'LDN', 'NY': 'US'}
-
-                for name, col in session_cols.items():
-                    data = sessions.get(name, {})
-                    with col:
-                        st.markdown(f"### {session_colors[name]} {name}")
-                        if data.get('status') == 'OK':
-                            st.metric("POC", f"${data['poc']:.2f}")
-                            st.metric("Volume", f"{data['volume']:,}")
-                            st.metric("Range", f"${data['range']:.2f}")
-                            st.caption(f"High: ${data['high']:.2f} | Low: ${data['low']:.2f}")
+                        # Confluence Check
+                        st.markdown("#### Confluence Check")
+                        conf = comp_builder.compare_composites([5, 10, 20])
+                        if conf['confluence']:
+                            for c in conf['confluence']:
+                                st.success(f"Confluence Zone at ${c['price']:.2f} (Matches: {c['timeframes']})")
                         else:
-                            st.info("No data for this session")
+                            st.info("No strong confluence detected across timeframes.")
+                except Exception as e:
+                    st.error(f"Composite Error: {e}")
 
-                # Comparison
-                st.markdown("---")
-                st.markdown("### Session Comparison")
-                cc1, cc2, cc3 = st.columns(3)
-                cc1.metric("Dominant Session", comparison.get('dominant_session', 'N/A'))
-                cc2.metric("POC Direction", comparison.get('poc_direction', 'N/A'),
-                           delta=f"{comparison.get('poc_shift_pct', 0):.3f}%")
-                cc3.metric("Overnight Gap", comparison.get('gap_type', 'N/A'),
-                           delta=f"${comparison.get('overnight_gap', 0):.2f}")
-
-                # Volume breakdown
-                vol_breakdown = comparison.get('volume_breakdown', {})
-                if vol_breakdown:
-                    st.markdown("#### Volume Distribution")
-                    vol_data = pd.DataFrame([
-                        {'Session': k, 'Volume': v['volume'], 'Pct': v['pct']}
-                        for k, v in vol_breakdown.items()
-                    ])
-                    fig_vol = px.pie(vol_data, values='Volume', names='Session',
-                                     title='Volume by Session', hole=0.4)
-                    st.plotly_chart(fig_vol, use_container_width=True)
-
-            except Exception as e:
-                st.error(f"Session Analysis Error: {e}")
-
-# --- TAB 8: RISK CALCULATOR ---
-with tab8:
-    st.subheader("Risk Calculator")
-
-    # Settings
-    risk_col1, risk_col2 = st.columns(2)
-    with risk_col1:
-        acct_size = st.number_input("Account Size ($)", value=10000, min_value=100, step=1000)
-        risk_pct = st.slider("Risk Per Trade (%)", 0.1, 5.0, 1.0, 0.1)
-    with risk_col2:
-        entry_price = st.number_input("Entry Price ($)", value=float(metrics.get('poc', 100)), min_value=0.01, step=0.5)
-        stop_price = st.number_input("Stop Loss ($)", value=float(metrics.get('val', 98)), min_value=0.01, step=0.5)
-
-    rm = RiskManager(acct_size, risk_pct)
-
-    if st.button("Calculate Position"):
-        pos = rm.calculate_position_size(entry_price, stop_price)
-
-        if 'error' in pos:
-            st.error(pos['error'])
-        else:
-            # Position size
-            st.markdown("### Position Size")
-            p1, p2, p3, p4 = st.columns(4)
-            p1.metric("Shares", pos['shares'])
-            p2.metric("Position Value", f"${pos['position_value']:,.2f}")
-            p3.metric("Risk ($)", f"${pos['total_risk_dollars']:,.2f}")
-            p4.metric("Risk (%)", f"{pos['total_risk_pct']}%")
-
-            # Multi-target plan
-            st.markdown("### Profit Targets")
-            va_range = metrics.get('vah', entry_price) - metrics.get('val', stop_price)
-            if va_range <= 0:
-                va_range = abs(entry_price - stop_price)
-
-            if pos['direction'] == 'LONG':
-                targets = [
-                    round(entry_price + va_range, 2),
-                    round(entry_price + 2 * va_range, 2),
-                    round(entry_price + 3 * va_range, 2),
-                ]
-            else:
-                targets = [
-                    round(entry_price - va_range, 2),
-                    round(entry_price - 2 * va_range, 2),
-                    round(entry_price - 3 * va_range, 2),
-                ]
-
-            plan = rm.multi_target_plan(entry_price, stop_price, targets)
-
-            if 'targets' in plan:
-                for t in plan['targets']:
-                    tc1, tc2, tc3, tc4 = st.columns(4)
-                    tc1.metric(f"Target {t['target_num']}", f"${t['price']:.2f}")
-                    tc2.metric("R:R", t['rr_ratio'])
-                    tc3.metric("Reward", f"${t['reward_dollars']:,.2f}")
-                    tc4.metric("Quality", t['quality'])
-
-            # Account heat info
-            st.markdown("### Account Utilization")
-            util_pct = pos['account_utilization_pct']
-            if util_pct <= 100:
-                st.progress(util_pct / 100, text=f"Account usage: {util_pct:.1f}%")
-            else:
-                st.warning(f"Position requires margin: {util_pct:.1f}% of account")
-
-# --- TAB 3: BACKTESTER ---
-with tab3:
-    st.subheader("Strategy Backtester")
-    
-    col_strat, col_cap, col_btn = st.columns([2, 1, 1])
-    strategy_name = col_strat.selectbox("Select Strategy", list(STRATEGIES.keys()))
-    capital = col_cap.number_input("Initial Capital", value=10000)
-    
-    if col_btn.button("Run Simulation"):
-        with st.spinner("Running backtest..."):
-            bt = VolumeProfileBacktester(ticker, initial_capital=capital)
-            strategy = STRATEGIES[strategy_name]
-            results = bt.run_strategy(strategy)
+        # 3. Volume Nodes
+        with adv_tabs[2]:
+            st.markdown("### Volume Nodes & Breakout Zones")
+            try:
+                # Use data from main engine or fetch fresh
+                vn_engine = VolumeProfileEngine(ticker, period="1mo")
+                vn_engine.calculate_volume_profile()
             
-            if "error" in results:
-                st.error(results['error'])
-            else:
-                # Metrics
-                m1, m2, m3, m4 = st.columns(4)
-                m1.metric("Win Rate", f"{results['win_rate']}%")
-                m2.metric("Total Return", f"{results['total_return']}%")
-                m3.metric("Final Capital", f"${results['final_capital']:,.2f}")
-                m4.metric("Total Trades", results['total_trades'])
-                
-                # Equity Curve
-                st.line_chart(bt.equity_curve)
-                
-                # Trades Table
-                if bt.trades:
-                    st.dataframe(pd.DataFrame(bt.trades))
-
-# --- TAB 4: AI AGENT ---
-with tab4:
-    st.subheader("AI Agent Insights")
-    
-    if st.button("Generate Trading Plan"):
-        with st.spinner("Agent is thinking..."):
-            plan_res = VolumeProfileAgent.get_trading_plan(ticker, period)
+                detector = VolumeNodeDetector(vn_engine.volume_profile)
+                nodes = detector.find_all_nodes()
+                breakouts = detector.identify_breakout_zones()
             
-            if plan_res['status'] == 'success':
-                p = plan_res['plan']
-                st.success(f"Strategy: {p['strategy']}")
-                
-                c1, c2 = st.columns(2)
-                with c1:
-                    st.write("**Setup:**")
-                    st.write(f"- Bias: {p['bias']}")
-                    st.write(f"- Entry Zone: ${p['entry_zone']['min']:.2f} - ${p['entry_zone']['max']:.2f}")
-                
-                with c2:
-                    st.write("**Risk Management:**")
-                    sl = f"${p['stop_loss']:.2f}" if p['stop_loss'] is not None else "N/A"
-                    t1 = f"${p['target_1']:.2f}" if p['target_1'] is not None else "N/A"
-                    t2 = f"${p['target_2']:.2f}" if p['target_2'] is not None else "N/A"
+                c_hvn, c_lvn = st.columns(2)
+            
+                with c_hvn:
+                    st.markdown("#### High Volume Nodes (Support/Resistance)")
+                    if nodes['hvn_clusters']:
+                        for hvn in nodes['hvn_clusters'][:5]: # Top 5
+                            st.success(f"**${hvn['price_center']:.2f}** (Vol: {int(hvn['total_volume'] / 1000)}k)")
+                            st.progress(min(hvn['strength']/100, 1.0))
+                    else:
+                        st.info("No significant HVNs")
                     
-                    st.write(f"- Stop Loss: {sl}")
-                    st.write(f"- Target 1: {t1}")
-                    st.write(f"- Target 2: {t2}")
+                with c_lvn:
+                    st.markdown("#### Breakout Zones (LVN Gaps)")
+                    if breakouts:
+                        for bo in breakouts:
+                            st.warning(f"**Breakout Zone**: ${bo['support']:.2f} - ${bo['resistance']:.2f}")
+                            st.caption(f"Width: ${bo['width']:.2f}")
+                    else:
+                        st.info("No clear breakout zones")
+                    
+            except Exception as e:
+                st.error(f"Node Detection Error: {e}")
+
+        # 4. Patterns & Stats
+        with adv_tabs[3]:
+            st.markdown("### Pattern Recognition & Deep Stats")
+        
+            try:
+                # Re-use engine data
+                stats_engine = VolumeProfileEngine(ticker, period="1mo")
+                stats_metrics = stats_engine.get_all_metrics()
+            
+                # Patterns
+                pat_det = ProfilePatternDetector(stats_engine.volume_profile, stats_engine.data)
+                patterns = pat_det.detect_all_patterns()
+            
+                st.markdown("#### Detected Patterns")
+                # Poor High/Low
+                p_cols = st.columns(2)
+                if patterns['poor_highs_lows']['poor_high']['detected']:
+                    p_cols[0].error(f"Poor High at ${patterns['poor_highs_lows']['poor_high']['price']:.2f}")
+                else:
+                    p_cols[0].success("Clean High")
+                
+                if patterns['poor_highs_lows']['poor_low']['detected']:
+                    p_cols[1].error(f"Poor Low at ${patterns['poor_highs_lows']['poor_low']['price']:.2f}")
+                else:
+                    p_cols[1].success("Clean Low")
+                
+                # Excess
+                if patterns['excess']:
+                    for ex in patterns['excess']:
+                        st.info(f"tail: {ex['type']} at ${ex['price']:.2f} ({ex['interpretation']})")
+            
+                # VA Status
+                st.markdown("#### Value Area Status")
+                va_stat = patterns['value_area_status']
+                st.metric("Status", va_stat['status'], va_stat['interpretation'])
+            
+                st.markdown("---")
+            
+                # Statistics
+                st.markdown("#### Deep Statistics")
+                prof_stats = ProfileStatistics(
+                    stats_engine.volume_profile, stats_engine.data, 
+                    stats_metrics['poc'], stats_metrics['vah'], stats_metrics['val']
+                )
+                full_stats = prof_stats.calculate_all_statistics()
+            
+                row1 = st.columns(3)
+                row1[0].metric("Profile Efficiency", f"{full_stats['profile_efficiency']['efficiency_pct']:.1f}%")
+                row1[1].metric("Review Bias", full_stats['volume_distribution']['bias'])
+                row1[2].metric("Volatility", full_stats['profile_width']['volatility'])
+            
+                st.caption(f"Time in VA: {full_stats['time_in_va'].get('pct_inside_va', 0):.1f}%")
+            
+            except Exception as e:
+                st.error(f"Stats Error: {e}")
+
+# --- TAB: TOOLS (Scanner + Sessions + Risk) ---
+with tab_tools:
+    tools_sub = st.tabs(["Scanner", "Sessions", "Risk Calculator"])
+    with tools_sub[0]:
+        st.subheader("Multi-Asset Scanner")
+
+        scan_col1, scan_col2 = st.columns([2, 1])
+        with scan_col1:
+            watchlist_name = st.selectbox(
+                "Watchlist",
+                list(WATCHLISTS.keys()),
+                format_func=lambda x: f"{x} ({len(WATCHLISTS[x])} tickers)"
+            )
+        with scan_col2:
+            custom_tickers = st.text_input(
+                "Or enter custom tickers (comma-separated)",
+                placeholder="AAPL, MSFT, TSLA"
+            )
+
+        if st.button("Run Scanner"):
+            tickers_to_scan = (
+                [t.strip().upper() for t in custom_tickers.split(',') if t.strip()]
+                if custom_tickers
+                else WATCHLISTS[watchlist_name]
+            )
+
+            with st.spinner(f"Scanning {len(tickers_to_scan)} tickers..."):
+                scanner = VolumeProfileScanner(tickers_to_scan)
+                results = scanner.scan_all()
+
+                if results:
+                    st.success(f"Scanned {len(results)} tickers successfully!")
+
+                    # Top metrics
+                    top = results[0]
+                    s1, s2, s3 = st.columns(3)
+                    s1.metric("Best Opportunity", top['ticker'], f"Score: {top['opportunity_score']}/100")
+                    s2.metric("Price", f"${top['current_price']:.2f}")
+                    s3.metric("Position", top['position'])
+
+                    # Results table
+                    scan_df = scanner.to_dataframe()
+                    display_cols = ['ticker', 'opportunity_score', 'current_price',
+                                    'poc', 'vah', 'val', 'position', 'distance_from_poc_pct', 'signal']
+                    display_cols = [c for c in display_cols if c in scan_df.columns]
+                    st.dataframe(
+                        scan_df[display_cols],
+                        use_container_width=True,
+                        hide_index=True,
+                        column_config={
+                            'opportunity_score': st.column_config.ProgressColumn(
+                                'Score', min_value=0, max_value=100, format='%d'
+                            ),
+                            'current_price': st.column_config.NumberColumn('Price', format='$%.2f'),
+                            'poc': st.column_config.NumberColumn('POC', format='$%.2f'),
+                            'vah': st.column_config.NumberColumn('VAH', format='$%.2f'),
+                            'val': st.column_config.NumberColumn('VAL', format='$%.2f'),
+                        }
+                    )
+
+                    # Export
+                    csv = scan_df.to_csv(index=False)
+                    st.download_button("Export CSV", csv, "scan_results.csv", "text/csv")
+
+                if scanner.errors:
+                    with st.expander(f"{len(scanner.errors)} errors"):
+                        for err in scanner.errors:
+                            st.caption(f"{err['ticker']}: {err['error']}")
+
+    with tools_sub[1]:
+        st.subheader("Session Analysis (Asia / London / NY)")
+
+        if st.button("Analyze Sessions"):
+            with st.spinner(f"Analyzing sessions for {ticker}..."):
+                try:
+                    sess_analyzer = SessionAnalyzer(ticker)
+                    sessions = sess_analyzer.analyze_sessions()
+                    comparison = sess_analyzer.get_session_comparison()
+
+                    # Session cards
+                    sc1, sc2, sc3 = st.columns(3)
+                    session_cols = {'Asia': sc1, 'London': sc2, 'NY': sc3}
+                    session_colors = {'Asia': 'ASIA', 'London': 'LDN', 'NY': 'US'}
+
+                    for name, col in session_cols.items():
+                        data = sessions.get(name, {})
+                        with col:
+                            st.markdown(f"### {session_colors[name]} {name}")
+                            if data.get('status') == 'OK':
+                                st.metric("POC", f"${data['poc']:.2f}")
+                                st.metric("Volume", f"{data['volume']:,}")
+                                st.metric("Range", f"${data['range']:.2f}")
+                                st.caption(f"High: ${data['high']:.2f} | Low: ${data['low']:.2f}")
+                            else:
+                                st.info("No data for this session")
+
+                    # Comparison
+                    st.markdown("---")
+                    st.markdown("### Session Comparison")
+                    cc1, cc2, cc3 = st.columns(3)
+                    cc1.metric("Dominant Session", comparison.get('dominant_session', 'N/A'))
+                    cc2.metric("POC Direction", comparison.get('poc_direction', 'N/A'),
+                               delta=f"{comparison.get('poc_shift_pct', 0):.3f}%")
+                    cc3.metric("Overnight Gap", comparison.get('gap_type', 'N/A'),
+                               delta=f"${comparison.get('overnight_gap', 0):.2f}")
+
+                    # Volume breakdown
+                    vol_breakdown = comparison.get('volume_breakdown', {})
+                    if vol_breakdown:
+                        st.markdown("#### Volume Distribution")
+                        vol_data = pd.DataFrame([
+                            {'Session': k, 'Volume': v['volume'], 'Pct': v['pct']}
+                            for k, v in vol_breakdown.items()
+                        ])
+                        fig_vol = px.pie(vol_data, values='Volume', names='Session',
+                                         title='Volume by Session', hole=0.4)
+                        st.plotly_chart(fig_vol, use_container_width=True)
+
+                except Exception as e:
+                    st.error(f"Session Analysis Error: {e}")
+
+    with tools_sub[2]:
+        st.subheader("Risk Calculator")
+
+        # Settings
+        risk_col1, risk_col2 = st.columns(2)
+        with risk_col1:
+            acct_size = st.number_input("Account Size ($)", value=10000, min_value=100, step=1000)
+            risk_pct = st.slider("Risk Per Trade (%)", 0.1, 5.0, 1.0, 0.1)
+        with risk_col2:
+            entry_price = st.number_input("Entry Price ($)", value=float(metrics.get('poc', 100)), min_value=0.01, step=0.5)
+            stop_price = st.number_input("Stop Loss ($)", value=float(metrics.get('val', 98)), min_value=0.01, step=0.5)
+
+        rm = RiskManager(acct_size, risk_pct)
+
+        if st.button("Calculate Position"):
+            pos = rm.calculate_position_size(entry_price, stop_price)
+
+            if 'error' in pos:
+                st.error(pos['error'])
             else:
-                st.error(plan_res.get('error', 'Unknown error'))
+                # Position size
+                st.markdown("### Position Size")
+                p1, p2, p3, p4 = st.columns(4)
+                p1.metric("Shares", pos['shares'])
+                p2.metric("Position Value", f"${pos['position_value']:,.2f}")
+                p3.metric("Risk ($)", f"${pos['total_risk_dollars']:,.2f}")
+                p4.metric("Risk (%)", f"{pos['total_risk_pct']}%")
+
+                # Multi-target plan
+                st.markdown("### Profit Targets")
+                va_range = metrics.get('vah', entry_price) - metrics.get('val', stop_price)
+                if va_range <= 0:
+                    va_range = abs(entry_price - stop_price)
+
+                if pos['direction'] == 'LONG':
+                    targets = [
+                        round(entry_price + va_range, 2),
+                        round(entry_price + 2 * va_range, 2),
+                        round(entry_price + 3 * va_range, 2),
+                    ]
+                else:
+                    targets = [
+                        round(entry_price - va_range, 2),
+                        round(entry_price - 2 * va_range, 2),
+                        round(entry_price - 3 * va_range, 2),
+                    ]
+
+                plan = rm.multi_target_plan(entry_price, stop_price, targets)
+
+                if 'targets' in plan:
+                    for t in plan['targets']:
+                        tc1, tc2, tc3, tc4 = st.columns(4)
+                        tc1.metric(f"Target {t['target_num']}", f"${t['price']:.2f}")
+                        tc2.metric("R:R", t['rr_ratio'])
+                        tc3.metric("Reward", f"${t['reward_dollars']:,.2f}")
+                        tc4.metric("Quality", t['quality'])
+
+                # Account heat info
+                st.markdown("### Account Utilization")
+                util_pct = pos['account_utilization_pct']
+                if util_pct <= 100:
+                    st.progress(util_pct / 100, text=f"Account usage: {util_pct:.1f}%")
+                else:
+                    st.warning(f"Position requires margin: {util_pct:.1f}% of account")
+
+    # --- TAB: RESEARCH (Backtester + AI + Options) ---
+with tab_research:
+    research_sub = st.tabs(["Backtester", "AI Insights", "Options Flow"])
+    with research_sub[0]:
+        st.subheader("Strategy Backtester")
+    
+        col_strat, col_cap, col_btn = st.columns([2, 1, 1])
+        strategy_name = col_strat.selectbox("Select Strategy", list(STRATEGIES.keys()))
+        capital = col_cap.number_input("Initial Capital", value=10000)
+    
+        if col_btn.button("Run Simulation"):
+            with st.spinner("Running backtest..."):
+                bt = VolumeProfileBacktester(ticker, initial_capital=capital)
+                strategy = STRATEGIES[strategy_name]
+                results = bt.run_strategy(strategy)
+            
+                if "error" in results:
+                    st.error(results['error'])
+                else:
+                    # Metrics
+                    m1, m2, m3, m4 = st.columns(4)
+                    m1.metric("Win Rate", f"{results['win_rate']}%")
+                    m2.metric("Total Return", f"{results['total_return']}%")
+                    m3.metric("Final Capital", f"${results['final_capital']:,.2f}")
+                    m4.metric("Total Trades", results['total_trades'])
+                
+                    # Equity Curve
+                    st.line_chart(bt.equity_curve)
+                
+                    # Trades Table
+                    if bt.trades:
+                        st.dataframe(pd.DataFrame(bt.trades))
+
+    with research_sub[1]:
+        st.subheader("AI Agent Insights")
+
+        if st.button("Generate Trading Plan"):
+            with st.spinner("Agent is thinking..."):
+                plan_res = VolumeProfileAgent.get_trading_plan(ticker, period)
+
+                if plan_res['status'] == 'success':
+                    p = plan_res['plan']
+                    st.success(f"Strategy: {p['strategy']}")
+
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        st.write("**Setup:**")
+                        st.write(f"- Bias: {p['bias']}")
+                        st.write(f"- Entry Zone: ${p['entry_zone']['min']:.2f} - ${p['entry_zone']['max']:.2f}")
+
+                    with c2:
+                        st.write("**Risk Management:**")
+                        sl = f"${p['stop_loss']:.2f}" if p['stop_loss'] is not None else "N/A"
+                        t1 = f"${p['target_1']:.2f}" if p['target_1'] is not None else "N/A"
+                        t2 = f"${p['target_2']:.2f}" if p['target_2'] is not None else "N/A"
+
+                        st.write(f"- Stop Loss: {sl}")
+                        st.write(f"- Target 1: {t1}")
+                        st.write(f"- Target 2: {t2}")
+                else:
+                    st.error(plan_res.get('error', 'Unknown error'))
 
 # ==================================================================
 # NEW TABS
 # ==================================================================
 
-# --- TAB: MULTI-TIMEFRAME ANALYSIS ---
-with tab_mtf:
-    st.subheader("Multi-Timeframe Volume Profile")
-    st.caption("Find confluent POC/VAH/VAL levels across timeframes. Aligned levels are strong S/R.")
+    with analytics_sub[1]:
+        st.subheader("Multi-Timeframe Volume Profile")
+        st.caption("Find confluent POC/VAH/VAL levels across timeframes. Aligned levels are strong S/R.")
 
-    mtf_tfs = st.multiselect("Timeframes", ['15m', '1h', '4h', '1d', '1w'],
-                              default=['15m', '1h', '1d'], key='mtf_tfs')
-    if st.button("Run Multi-TF Analysis", key='mtf_run'):
-        with st.spinner("Analyzing across timeframes..."):
-            try:
-                mtf = MultiTimeframeAnalyzer(ticker, mtf_tfs)
-                mtf_result = mtf.analyze()
+        mtf_tfs = st.multiselect("Timeframes", ['15m', '1h', '4h', '1d', '1w'],
+                                  default=['15m', '1h', '1d'], key='mtf_tfs')
+        if st.button("Run Multi-TF Analysis", key='mtf_run'):
+            with st.spinner("Analyzing across timeframes..."):
+                try:
+                    mtf = MultiTimeframeAnalyzer(ticker, mtf_tfs)
+                    mtf_result = mtf.analyze()
 
-                # Show each timeframe's levels
-                st.markdown("### Levels by Timeframe")
-                cols = st.columns(len(mtf_tfs))
-                for i, tf in enumerate(mtf_tfs):
-                    with cols[i]:
-                        data = mtf_result['timeframes'].get(tf, {})
-                        label = data.get('label', tf)
-                        st.markdown(f"**{label}**")
-                        if 'error' not in data:
-                            st.metric("POC", f"${data['poc']:.2f}")
-                            st.metric("VAH", f"${data['vah']:.2f}")
-                            st.metric("VAL", f"${data['val']:.2f}")
-                        else:
-                            st.warning(data['error'])
+                    # Show each timeframe's levels
+                    st.markdown("### Levels by Timeframe")
+                    cols = st.columns(len(mtf_tfs))
+                    for i, tf in enumerate(mtf_tfs):
+                        with cols[i]:
+                            data = mtf_result['timeframes'].get(tf, {})
+                            label = data.get('label', tf)
+                            st.markdown(f"**{label}**")
+                            if 'error' not in data:
+                                st.metric("POC", f"${data['poc']:.2f}")
+                                st.metric("VAH", f"${data['vah']:.2f}")
+                                st.metric("VAL", f"${data['val']:.2f}")
+                            else:
+                                st.warning(data['error'])
 
-                # Confluence levels
-                confluences = mtf_result['confluences']
-                if confluences:
-                    st.markdown("---")
-                    st.markdown("### Confluence Levels (Strongest S/R)")
-                    for c in confluences:
-                        strength_bar = "+" * c['strength']
-                        st.markdown(f"**${c['price']:.2f}** [{strength_bar}] -- {c['description']}")
-
-                # Strongest levels table
-                strongest = mtf_result['strongest_levels']
-                if strongest:
-                    st.markdown("---")
-                    st.markdown("### Ranked Levels")
-                    st.dataframe(pd.DataFrame(strongest), use_container_width=True)
-
-            except Exception as e:
-                st.error(f"MTF Error: {e}")
-
-# --- TAB: CORRELATION ---
-with tab_corr:
-    st.subheader("Correlation Heatmap")
-    st.caption("Find correlated and inversely correlated assets. Useful for hedging and divergence trading.")
-
-    corr_preset = st.selectbox("Preset", list(CorrelationAnalyzer.DEFAULT_PAIRS.keys()) + ['Custom'],
-                                key='corr_preset')
-    if corr_preset == 'Custom':
-        corr_tickers_str = st.text_input("Tickers (comma-separated)", "SPY,QQQ,GC=F,TLT", key='corr_custom')
-        corr_tickers = [t.strip() for t in corr_tickers_str.split(',')]
-    else:
-        corr_tickers = CorrelationAnalyzer.DEFAULT_PAIRS[corr_preset]
-
-    corr_period = st.selectbox("Period", ['1mo', '3mo', '6mo', '1y'], index=1, key='corr_period')
-
-    if st.button("Compute Correlation", key='corr_run'):
-        with st.spinner("Computing correlations..."):
-            try:
-                ca = CorrelationAnalyzer(corr_tickers, period=corr_period)
-                summary = ca.get_summary()
-                corr_matrix = summary['correlation_matrix']
-
-                # Heatmap
-                fig_corr = go.Figure(data=go.Heatmap(
-                    z=corr_matrix.values,
-                    x=corr_matrix.columns.tolist(),
-                    y=corr_matrix.index.tolist(),
-                    colorscale='RdBu_r',
-                    zmid=0, zmin=-1, zmax=1,
-                    text=corr_matrix.values.round(2),
-                    texttemplate='%{text}',
-                    textfont={"size": 14},
-                ))
-                fig_corr.update_layout(
-                    height=500, template='plotly_dark',
-                    title='Correlation Matrix (Daily Returns)'
-                )
-                st.plotly_chart(fig_corr, use_container_width=True)
-
-                # Summary
-                c1, c2 = st.columns(2)
-                with c1:
-                    st.markdown("**Strongest Positive Correlations**")
-                    for p in summary['strongest_positive'][:5]:
-                        st.caption(f"{p['pair']}: {p['correlation']:.3f}")
-                with c2:
-                    st.markdown("**Strongest Negative Correlations**")
-                    for p in summary['strongest_negative'][:5]:
-                        st.caption(f"{p['pair']}: {p['correlation']:.3f}")
-
-            except Exception as e:
-                st.error(f"Correlation Error: {e}")
-
-# --- TAB: WATCHLIST DASHBOARD ---
-with tab_wl:
-    st.subheader("Watchlist Dashboard")
-
-    wl_names = wl_mgr.get_names()
-    wl_choice = st.selectbox("Select Watchlist", wl_names, key='wl_dash_select') if wl_names else None
-
-    if wl_choice and st.button("Load Watchlist", key='wl_load'):
-        wl_tickers = wl_mgr.get_tickers(wl_choice)
-        with st.spinner(f"Loading {len(wl_tickers)} tickers..."):
-            cols = st.columns(min(4, len(wl_tickers)))
-            for i, wt in enumerate(wl_tickers):
-                col = cols[i % 4]
-                with col:
-                    try:
-                        wt_data = yf.download(wt, period='5d', interval='1d',
-                                              progress=False, auto_adjust=True)
-                        if wt_data is not None and not wt_data.empty:
-                            if isinstance(wt_data.columns, pd.MultiIndex):
-                                wt_data.columns = wt_data.columns.get_level_values(0)
-                            price = float(wt_data['Close'].iloc[-1])
-                            prev = float(wt_data['Close'].iloc[-2]) if len(wt_data) > 1 else price
-                            change_pct = (price - prev) / prev * 100
-
-                            st.metric(
-                                wt, f"${price:.2f}",
-                                delta=f"{change_pct:+.2f}%"
-                            )
-
-                            # Mini sparkline
-                            fig_mini = go.Figure(go.Scatter(
-                                y=wt_data['Close'].tolist(), mode='lines',
-                                line=dict(color='cyan' if change_pct >= 0 else 'red', width=1.5)
-                            ))
-                            fig_mini.update_layout(
-                                height=80, margin=dict(l=0, r=0, t=0, b=0),
-                                xaxis=dict(visible=False), yaxis=dict(visible=False),
-                                template='plotly_dark', plot_bgcolor='rgba(0,0,0,0)',
-                                paper_bgcolor='rgba(0,0,0,0)'
-                            )
-                            st.plotly_chart(fig_mini, use_container_width=True)
-                        else:
-                            st.caption(f"{wt}: No data")
-                    except Exception:
-                        st.caption(f"{wt}: Error")
-
-# --- TAB: NEWS & SENTIMENT ---
-with tab_news:
-    st.subheader("News & Sentiment")
-    st.caption("Live news from Google News (Reuters, Bloomberg, CNBC, etc.) with sentiment scoring.")
-
-    if st.button("Load News", key='news_load'):
-        with st.spinner("Fetching news..."):
-            try:
-                nf = NewsFeedAnalyzer(ticker)
-                result = nf.get_sentiment_summary()
-
-                # Summary metrics
-                nc1, nc2, nc3, nc4, nc5 = st.columns(5)
-                nc1.metric("Overall Sentiment", result['overall_sentiment'])
-                nc2.metric("Score", f"{result['avg_score']:+.2f}")
-                nc3.metric("Positive", result['positive_count'])
-                nc4.metric("Negative", result['negative_count'])
-                nc5.metric("Neutral", result['neutral_count'])
-
-                # Articles
-                st.markdown("---")
-                for article in result['articles']:
-                    sent = article['sentiment']
-                    sent_emoji = "🟢" if sent == 'Positive' else "🔴" if sent == 'Negative' else "⚪"
-                    st.markdown(
-                        f"{sent_emoji} **{article['title']}**  \n"
-                        f"*{article['publisher']}* · {article['age']}  "
-                        f"[Read →]({article['link']})"
-                    )
-                    st.markdown("---")
-
-                if not result['articles']:
-                    st.info("No news articles found. Try a different ticker.")
-
-            except Exception as e:
-                st.error(f"News Error: {e}")
-
-
-# --- TAB: ECONOMIC CALENDAR ---
-with tab_cal:
-    st.subheader("Economic Calendar")
-    st.caption("Upcoming high-impact economic events that affect markets.")
-
-    import streamlit.components.v1 as components_cal
-    cal_html = """
-    <div style="height:600px;overflow:auto;">
-    <!-- TradingView Widget BEGIN -->
-    <div class="tradingview-widget-container">
-      <div class="tradingview-widget-container__widget"></div>
-      <script type="text/javascript"
-        src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
-        {
-          "colorTheme": "dark",
-          "isTransparent": true,
-          "width": "100%",
-          "height": "580",
-          "locale": "en",
-          "importanceFilter": "0,1",
-          "countryFilter": "us,eu,gb,jp,cn"
-        }
-      </script>
-    </div>
-    <!-- TradingView Widget END -->
-    </div>
-    """
-    components_cal.html(cal_html, height=620)
-
-# --- TAB: OPTIONS FLOW ---
-with tab_opt:
-    st.subheader("Options Flow Analysis")
-
-    if st.button("Load Options", key='opt_load'):
-        with st.spinner("Loading options chain..."):
-            try:
-                ofa = OptionsFlowAnalyzer(ticker)
-                expirations = ofa.get_expirations()
-
-                if not expirations:
-                    st.warning("No options data available for this ticker.")
-                else:
-                    exp_choice = st.selectbox("Expiration", expirations, key='opt_exp')
-                    opt_result = ofa.analyze(exp_choice)
-
-                    if 'error' in opt_result:
-                        st.error(opt_result['error'])
-                    else:
-                        # Metrics
-                        oc1, oc2, oc3, oc4 = st.columns(4)
-                        oc1.metric("Put/Call Ratio", f"{opt_result['pc_ratio']:.2f}")
-                        oc2.metric("Max Pain", f"${opt_result['max_pain']:.2f}")
-                        oc3.metric("Sentiment", opt_result['sentiment'])
-                        oc4.metric("Current Price", f"${opt_result['current_price']:.2f}")
-
-                        oc5, oc6, oc7, oc8 = st.columns(4)
-                        oc5.metric("Call Volume", f"{opt_result['call_volume']:,}")
-                        oc6.metric("Put Volume", f"{opt_result['put_volume']:,}")
-                        oc7.metric("Call IV", f"{opt_result['call_iv']}%")
-                        oc8.metric("Put IV", f"{opt_result['put_iv']}%")
-
-                        # Visual: OI by strike
+                    # Confluence levels
+                    confluences = mtf_result['confluences']
+                    if confluences:
                         st.markdown("---")
-                        st.markdown("### Open Interest by Strike")
-                        calls = opt_result['calls']
-                        puts = opt_result['puts']
+                        st.markdown("### Confluence Levels (Strongest S/R)")
+                        for c in confluences:
+                            strength_bar = "+" * c['strength']
+                            st.markdown(f"**${c['price']:.2f}** [{strength_bar}] -- {c['description']}")
 
-                        fig_oi = go.Figure()
-                        if not calls.empty and 'openInterest' in calls.columns:
-                            fig_oi.add_trace(go.Bar(
-                                x=calls['strike'], y=calls['openInterest'],
-                                name='Call OI', marker_color='rgba(0,200,100,0.7)'
-                            ))
-                        if not puts.empty and 'openInterest' in puts.columns:
-                            fig_oi.add_trace(go.Bar(
-                                x=puts['strike'], y=puts['openInterest'],
-                                name='Put OI', marker_color='rgba(255,80,80,0.7)'
-                            ))
-                        # Max pain line
-                        fig_oi.add_vline(
-                            x=opt_result['max_pain'],
-                            line_dash="dash", line_color="yellow",
-                            annotation_text="Max Pain"
-                        )
-                        # Current price line
-                        fig_oi.add_vline(
-                            x=opt_result['current_price'],
-                            line_dash="solid", line_color="white",
-                            annotation_text="Price"
-                        )
-                        fig_oi.update_layout(
-                            height=400, template='plotly_dark',
-                            barmode='group', title='Open Interest Distribution'
-                        )
-                        st.plotly_chart(fig_oi, use_container_width=True)
+                    # Strongest levels table
+                    strongest = mtf_result['strongest_levels']
+                    if strongest:
+                        st.markdown("---")
+                        st.markdown("### Ranked Levels")
+                        st.dataframe(pd.DataFrame(strongest), use_container_width=True)
 
-                        # Unusual Activity
-                        unusual = opt_result['unusual_activity']
-                        if not unusual.empty:
-                            st.markdown("---")
-                            st.markdown("### Unusual Options Activity")
-                            st.caption("Options with volume significantly above average. Could indicate institutional positioning.")
-                            st.dataframe(unusual, use_container_width=True,
-                                column_config={
-                                    'strike': st.column_config.NumberColumn('Strike', format='$%.2f'),
-                                    'lastPrice': st.column_config.NumberColumn('Last', format='$%.2f'),
-                                    'impliedVolatility': st.column_config.NumberColumn('IV', format='%.1f%%'),
-                                }
-                            )
+                except Exception as e:
+                    st.error(f"MTF Error: {e}")
+
+    with analytics_sub[2]:
+        st.subheader("Correlation Heatmap")
+        st.caption("Find correlated and inversely correlated assets. Useful for hedging and divergence trading.")
+
+        corr_preset = st.selectbox("Preset", list(CorrelationAnalyzer.DEFAULT_PAIRS.keys()) + ['Custom'],
+                                    key='corr_preset')
+        if corr_preset == 'Custom':
+            corr_tickers_str = st.text_input("Tickers (comma-separated)", "SPY,QQQ,GC=F,TLT", key='corr_custom')
+            corr_tickers = [t.strip() for t in corr_tickers_str.split(',')]
+        else:
+            corr_tickers = CorrelationAnalyzer.DEFAULT_PAIRS[corr_preset]
+
+        corr_period = st.selectbox("Period", ['1mo', '3mo', '6mo', '1y'], index=1, key='corr_period')
+
+        if st.button("Compute Correlation", key='corr_run'):
+            with st.spinner("Computing correlations..."):
+                try:
+                    ca = CorrelationAnalyzer(corr_tickers, period=corr_period)
+                    summary = ca.get_summary()
+                    corr_matrix = summary['correlation_matrix']
+
+                    # Heatmap
+                    fig_corr = go.Figure(data=go.Heatmap(
+                        z=corr_matrix.values,
+                        x=corr_matrix.columns.tolist(),
+                        y=corr_matrix.index.tolist(),
+                        colorscale='RdBu_r',
+                        zmid=0, zmin=-1, zmax=1,
+                        text=corr_matrix.values.round(2),
+                        texttemplate='%{text}',
+                        textfont={"size": 14},
+                    ))
+                    fig_corr.update_layout(
+                        height=500, template='plotly_dark',
+                        title='Correlation Matrix (Daily Returns)'
+                    )
+                    st.plotly_chart(fig_corr, use_container_width=True)
+
+                    # Summary
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        st.markdown("**Strongest Positive Correlations**")
+                        for p in summary['strongest_positive'][:5]:
+                            st.caption(f"{p['pair']}: {p['correlation']:.3f}")
+                    with c2:
+                        st.markdown("**Strongest Negative Correlations**")
+                        for p in summary['strongest_negative'][:5]:
+                            st.caption(f"{p['pair']}: {p['correlation']:.3f}")
+
+                except Exception as e:
+                    st.error(f"Correlation Error: {e}")
+
+    with analytics_sub[3]:
+        st.subheader("Watchlist Dashboard")
+
+        wl_names = wl_mgr.get_names()
+        wl_choice = st.selectbox("Select Watchlist", wl_names, key='wl_dash_select') if wl_names else None
+
+        if wl_choice and st.button("Load Watchlist", key='wl_load'):
+            wl_tickers = wl_mgr.get_tickers(wl_choice)
+            with st.spinner(f"Loading {len(wl_tickers)} tickers..."):
+                cols = st.columns(min(4, len(wl_tickers)))
+                for i, wt in enumerate(wl_tickers):
+                    col = cols[i % 4]
+                    with col:
+                        try:
+                            wt_data = yf.download(wt, period='5d', interval='1d',
+                                                  progress=False, auto_adjust=True)
+                            if wt_data is not None and not wt_data.empty:
+                                if isinstance(wt_data.columns, pd.MultiIndex):
+                                    wt_data.columns = wt_data.columns.get_level_values(0)
+                                price = float(wt_data['Close'].iloc[-1])
+                                prev = float(wt_data['Close'].iloc[-2]) if len(wt_data) > 1 else price
+                                change_pct = (price - prev) / prev * 100
+
+                                st.metric(
+                                    wt, f"${price:.2f}",
+                                    delta=f"{change_pct:+.2f}%"
+                                )
+
+                                # Mini sparkline
+                                fig_mini = go.Figure(go.Scatter(
+                                    y=wt_data['Close'].tolist(), mode='lines',
+                                    line=dict(color='cyan' if change_pct >= 0 else 'red', width=1.5)
+                                ))
+                                fig_mini.update_layout(
+                                    height=80, margin=dict(l=0, r=0, t=0, b=0),
+                                    xaxis=dict(visible=False), yaxis=dict(visible=False),
+                                    template='plotly_dark', plot_bgcolor='rgba(0,0,0,0)',
+                                    paper_bgcolor='rgba(0,0,0,0)'
+                                )
+                                st.plotly_chart(fig_mini, use_container_width=True)
+                            else:
+                                st.caption(f"{wt}: No data")
+                        except Exception:
+                            st.caption(f"{wt}: Error")
+
+    # --- TAB: NEWS (News + Calendar) ---
+with tab_news:
+    news_sub = st.tabs(["News Feed", "Economic Calendar"])
+    with news_sub[0]:
+        st.subheader("News & Sentiment")
+        st.caption("Live news from Google News (Reuters, Bloomberg, CNBC, etc.) with sentiment scoring.")
+
+        if st.button("Load News", key='news_load'):
+            with st.spinner("Fetching news..."):
+                try:
+                    nf = NewsFeedAnalyzer(ticker)
+                    result = nf.get_sentiment_summary()
+
+                    # Summary metrics
+                    nc1, nc2, nc3, nc4, nc5 = st.columns(5)
+                    nc1.metric("Overall Sentiment", result['overall_sentiment'])
+                    nc2.metric("Score", f"{result['avg_score']:+.2f}")
+                    nc3.metric("Positive", result['positive_count'])
+                    nc4.metric("Negative", result['negative_count'])
+                    nc5.metric("Neutral", result['neutral_count'])
+
+                    # Articles
+                    st.markdown("---")
+                    for article in result['articles']:
+                        sent = article['sentiment']
+                        sent_emoji = "🟢" if sent == 'Positive' else "🔴" if sent == 'Negative' else "⚪"
+                        st.markdown(
+                            f"{sent_emoji} **{article['title']}**  \n"
+                            f"*{article['publisher']}* · {article['age']}  "
+                            f"[Read →]({article['link']})"
+                        )
+                        st.markdown("---")
+
+                    if not result['articles']:
+                        st.info("No news articles found. Try a different ticker.")
+
+                except Exception as e:
+                    st.error(f"News Error: {e}")
+
+
+    with news_sub[1]:
+        st.subheader("Economic Calendar")
+        st.caption("Upcoming high-impact economic events that affect markets.")
+
+        import streamlit.components.v1 as components_cal
+        cal_html = """
+        <div style="height:600px;overflow:auto;">
+        <!-- TradingView Widget BEGIN -->
+        <div class="tradingview-widget-container">
+          <div class="tradingview-widget-container__widget"></div>
+          <script type="text/javascript"
+            src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
+            {
+              "colorTheme": "dark",
+              "isTransparent": true,
+              "width": "100%",
+              "height": "580",
+              "locale": "en",
+              "importanceFilter": "0,1",
+              "countryFilter": "us,eu,gb,jp,cn"
+            }
+          </script>
+        </div>
+        <!-- TradingView Widget END -->
+        </div>
+        """
+        components_cal.html(cal_html, height=620)
+
+    with research_sub[2]:
+        st.subheader("Options Flow Analysis")
+
+        if st.button("Load Options", key='opt_load'):
+            with st.spinner("Loading options chain..."):
+                try:
+                    ofa = OptionsFlowAnalyzer(ticker)
+                    expirations = ofa.get_expirations()
+
+                    if not expirations:
+                        st.warning("No options data available for this ticker.")
+                    else:
+                        exp_choice = st.selectbox("Expiration", expirations, key='opt_exp')
+                        opt_result = ofa.analyze(exp_choice)
+
+                        if 'error' in opt_result:
+                            st.error(opt_result['error'])
                         else:
-                            st.info("No unusual options activity detected.")
+                            # Metrics
+                            oc1, oc2, oc3, oc4 = st.columns(4)
+                            oc1.metric("Put/Call Ratio", f"{opt_result['pc_ratio']:.2f}")
+                            oc2.metric("Max Pain", f"${opt_result['max_pain']:.2f}")
+                            oc3.metric("Sentiment", opt_result['sentiment'])
+                            oc4.metric("Current Price", f"${opt_result['current_price']:.2f}")
 
-            except Exception as e:
-                st.error(f"Options Error: {e}")
+                            oc5, oc6, oc7, oc8 = st.columns(4)
+                            oc5.metric("Call Volume", f"{opt_result['call_volume']:,}")
+                            oc6.metric("Put Volume", f"{opt_result['put_volume']:,}")
+                            oc7.metric("Call IV", f"{opt_result['call_iv']}%")
+                            oc8.metric("Put IV", f"{opt_result['put_iv']}%")
+
+                            # Visual: OI by strike
+                            st.markdown("---")
+                            st.markdown("### Open Interest by Strike")
+                            calls = opt_result['calls']
+                            puts = opt_result['puts']
+
+                            fig_oi = go.Figure()
+                            if not calls.empty and 'openInterest' in calls.columns:
+                                fig_oi.add_trace(go.Bar(
+                                    x=calls['strike'], y=calls['openInterest'],
+                                    name='Call OI', marker_color='rgba(0,200,100,0.7)'
+                                ))
+                            if not puts.empty and 'openInterest' in puts.columns:
+                                fig_oi.add_trace(go.Bar(
+                                    x=puts['strike'], y=puts['openInterest'],
+                                    name='Put OI', marker_color='rgba(255,80,80,0.7)'
+                                ))
+                            # Max pain line
+                            fig_oi.add_vline(
+                                x=opt_result['max_pain'],
+                                line_dash="dash", line_color="yellow",
+                                annotation_text="Max Pain"
+                            )
+                            # Current price line
+                            fig_oi.add_vline(
+                                x=opt_result['current_price'],
+                                line_dash="solid", line_color="white",
+                                annotation_text="Price"
+                            )
+                            fig_oi.update_layout(
+                                height=400, template='plotly_dark',
+                                barmode='group', title='Open Interest Distribution'
+                            )
+                            st.plotly_chart(fig_oi, use_container_width=True)
+
+                            # Unusual Activity
+                            unusual = opt_result['unusual_activity']
+                            if not unusual.empty:
+                                st.markdown("---")
+                                st.markdown("### Unusual Options Activity")
+                                st.caption("Options with volume significantly above average. Could indicate institutional positioning.")
+                                st.dataframe(unusual, use_container_width=True,
+                                    column_config={
+                                        'strike': st.column_config.NumberColumn('Strike', format='$%.2f'),
+                                        'lastPrice': st.column_config.NumberColumn('Last', format='$%.2f'),
+                                        'impliedVolatility': st.column_config.NumberColumn('IV', format='%.1f%%'),
+                                    }
+                                )
+                            else:
+                                st.info("No unusual options activity detected.")
+
+                except Exception as e:
+                    st.error(f"Options Error: {e}")
