@@ -29,101 +29,65 @@ from alerts_engine import AlertsEngine, WatchlistManager
 from trade_journal import TradeJournal, TickerNotes, UserPreferences
 import numpy as np
 
-st.set_page_config(layout="wide", page_title="Volume Profile Terminal", page_icon="📊")
+st.set_page_config(layout="wide", page_title="Volume Profile Terminal")
 
-# --- Professional Dark Theme CSS ---
+# --- Minimal Dark Theme CSS ---
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
-    /* Global */
     html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
     .main .block-container { padding: 1rem 1.5rem; max-width: 100%; }
 
     /* Sidebar */
-    [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0d1117 0%, #161b22 100%);
-        border-right: 1px solid rgba(99,110,123,0.2);
-    }
+    [data-testid="stSidebar"] { background: #0d1117; border-right: 1px solid #21262d; }
     [data-testid="stSidebar"][aria-expanded="true"] { min-width: 260px; max-width: 260px; }
-    [data-testid="stSidebar"][aria-expanded="false"] { min-width: 0px; max-width: 0px; margin-left: -260px; }
-    [data-testid="stSidebar"] .stSelectbox label,
-    [data-testid="stSidebar"] .stTextInput label { font-size: 12px; color: #8b949e; }
+    [data-testid="stSidebar"][aria-expanded="false"] { min-width: 0; max-width: 0; margin-left: -260px; }
 
     /* Tab bar */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 0; background: rgba(22,27,34,0.8);
-        border-radius: 8px; padding: 4px;
-        border: 1px solid rgba(99,110,123,0.15);
-    }
+    .stTabs [data-baseweb="tab-list"] { gap: 0; border-bottom: 1px solid #21262d; background: transparent; }
     .stTabs [data-baseweb="tab"] {
-        padding: 8px 16px; font-size: 13px; font-weight: 500;
-        border-radius: 6px; color: #8b949e;
-        transition: all 0.2s ease;
+        padding: 10px 18px; font-size: 13px; font-weight: 500;
+        color: #7d8590; border-bottom: 2px solid transparent;
     }
-    .stTabs [data-baseweb="tab"]:hover { color: #e6edf3; background: rgba(99,110,123,0.15); }
+    .stTabs [data-baseweb="tab"]:hover { color: #e6edf3; }
     .stTabs [aria-selected="true"] {
-        background: rgba(56,139,253,0.15) !important;
-        color: #58a6ff !important; font-weight: 600;
-        border-bottom: 2px solid #58a6ff !important;
+        color: #e6edf3 !important; font-weight: 600;
+        border-bottom: 2px solid #e6edf3 !important;
+        background: transparent !important;
     }
 
     /* Metric cards */
     [data-testid="stMetric"] {
-        background: linear-gradient(135deg, rgba(22,27,34,0.9), rgba(13,17,23,0.9));
-        border: 1px solid rgba(99,110,123,0.15);
-        border-radius: 10px; padding: 14px 18px;
-        backdrop-filter: blur(10px);
-        transition: transform 0.15s ease, border-color 0.15s ease;
+        background: #161b22; border: 1px solid #21262d;
+        border-radius: 6px; padding: 12px 16px;
     }
-    [data-testid="stMetric"]:hover {
-        transform: translateY(-1px);
-        border-color: rgba(56,139,253,0.3);
-    }
-    [data-testid="stMetricLabel"] { font-size: 11px !important; color: #8b949e !important; text-transform: uppercase; letter-spacing: 0.5px; }
-    [data-testid="stMetricValue"] { font-size: 22px !important; font-weight: 600 !important; color: #e6edf3 !important; }
+    [data-testid="stMetricLabel"] { font-size: 11px !important; color: #7d8590 !important; text-transform: uppercase; letter-spacing: 0.5px; }
+    [data-testid="stMetricValue"] { font-size: 20px !important; font-weight: 600 !important; }
 
     /* Buttons */
     .stButton > button {
-        background: linear-gradient(135deg, #238636, #2ea043) !important;
-        color: white !important; border: none !important;
-        border-radius: 8px; font-weight: 500;
-        padding: 8px 20px; font-size: 13px;
-        transition: all 0.2s ease;
+        background: #21262d !important; color: #e6edf3 !important;
+        border: 1px solid #30363d !important; border-radius: 6px;
+        font-weight: 500; font-size: 13px; padding: 6px 16px;
     }
-    .stButton > button:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(35,134,54,0.4); }
-
-    /* Expanders */
-    .streamlit-expanderHeader {
-        background: rgba(22,27,34,0.6) !important;
-        border-radius: 8px; font-size: 13px;
-    }
-
-    /* Dataframes */
-    .stDataFrame { border-radius: 8px; overflow: hidden; }
-
-    /* Section dividers */
-    hr { border-color: rgba(99,110,123,0.15) !important; margin: 1rem 0 !important; }
+    .stButton > button:hover { background: #30363d !important; border-color: #8b949e !important; }
 
     /* Headers */
-    h1, h2, h3 { color: #e6edf3 !important; font-weight: 600 !important; }
-    h2 { font-size: 20px !important; border-bottom: 1px solid rgba(99,110,123,0.15); padding-bottom: 8px; }
+    h1, h2, h3 { font-weight: 600 !important; }
+    h2 { font-size: 18px !important; }
 
-    /* Captions */
-    .stCaption { color: #8b949e !important; }
+    /* Dividers */
+    hr { border-color: #21262d !important; }
 
     /* Download buttons */
-    .stDownloadButton > button {
-        background: rgba(99,110,123,0.2) !important;
-        border: 1px solid rgba(99,110,123,0.3) !important;
-        color: #e6edf3 !important;
-    }
+    .stDownloadButton > button { background: transparent !important; border: 1px solid #30363d !important; }
 
     /* Responsive */
     @media (max-width: 768px) {
         .main .block-container { padding: 0.5rem; }
         [data-testid="stSidebar"][aria-expanded="true"] { min-width: 100%; max-width: 100%; }
-        .stTabs [data-baseweb="tab"] { padding: 6px 10px; font-size: 11px; }
+        .stTabs [data-baseweb="tab"] { padding: 8px 12px; font-size: 11px; }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -235,16 +199,12 @@ def load_data(ticker, period, interval):
 if st.sidebar.button("Run Analysis"):
     st.session_state['run'] = True
 
-if 'run' not in st.session_state:
-    st.info("Enter a ticker and click 'Run Analysis' to start.")
-    st.stop()
-
 
 # --- tabs ---
 # Define 8 consolidated tabs
 (tab_my, tab_tv, tab1, tab2, tab_analytics, tab_tools, tab_news, tab_research) = st.tabs([
-    "🏠 Home", "📈 Chart", "🔍 Analysis", "📊 Order Flow",
-    "⚡ Analytics", "🛠 Tools", "📰 News", "🧪 Research"
+    "Home", "Chart", "Analysis", "Order Flow",
+    "Analytics", "Tools", "News", "Research"
 ])
 
 # --- TAB MY: MY DASHBOARD ---
@@ -529,748 +489,755 @@ with tab_tv:
         allow_symbol_change=True
     )
 
-try:
-    with st.spinner(f"Analyzing {ticker}..."):
-        engine = load_data(ticker, period, interval)
-        if engine.data is None or engine.data.empty:
-            raise ValueError(f"No data returned for '{ticker}'. Check the ticker symbol.")
-        metrics = engine.get_all_metrics()
-        df = engine.data
-        profile = engine.volume_profile
-        data_loaded = True
-        
-        # Phase 5: Advanced Analytics
-        daily_profiles = engine.get_daily_profiles(days=5)
-        # Phase 6: Use new classes
-        if len(daily_profiles) >= 2:
-            comp = ProfileComparator(ticker).compare_yesterday_today()
-        else:
-            comp = {}
-            
-        tracker = ValueAreaMigrationTracker(ticker, lookback_days=10).track_migration()
-        
-        # Volume Anomalies
-        vol_mean = df['Volume'].mean()
-        vol_std = df['Volume'].std()
-        
-except Exception as e:
-    st.warning(f"Data loading failed for '{ticker}': {e}. TradingView chart still works. Other tabs need valid Yahoo Finance data.")
-    data_loaded = False
+data_loaded = False
+if 'run' in st.session_state:
+    try:
+        with st.spinner(f"Analyzing {ticker}..."):
+            engine = load_data(ticker, period, interval)
+            if engine.data is None or engine.data.empty:
+                raise ValueError(f"No data returned for '{ticker}'. Check the ticker symbol.")
+            metrics = engine.get_all_metrics()
+            df = engine.data
+            profile = engine.volume_profile
+            data_loaded = True
 
-# --- tabs ---
-# Tabs defined above
+            # Phase 5: Advanced Analytics
+            daily_profiles = engine.get_daily_profiles(days=5)
+            if len(daily_profiles) >= 2:
+                comp = ProfileComparator(ticker).compare_yesterday_today()
+            else:
+                comp = {}
 
-# Guard: if data loading failed, only TradingView tab works
-if not data_loaded:
-    with tab1:
-        st.info("Data not available for this ticker. The TradingView chart still works.")
-    st.stop()
+            tracker = ValueAreaMigrationTracker(ticker, lookback_days=10).track_migration()
+
+            # Volume Anomalies
+            vol_mean = df['Volume'].mean()
+            vol_std = df['Volume'].std()
+
+    except Exception as e:
+        st.warning(f"Data loading failed for '{ticker}': {e}. Chart tab still works.")
+        data_loaded = False
 
 # --- TAB 1: MARKET ANALYSIS ---
 with tab1:
-    # 1. Metrics Row
-    col1, col2, col3, col4 = st.columns(4)
-    
-    pos_color = "green" if "ABOVE" in metrics['position'] else "red" if "BELOW" in metrics['position'] else "orange"
-    
-    col1.metric("Current Price", f"${metrics['current_price']:.2f}", 
-                delta=f"{metrics['distance_from_poc_pct']:.2f}% from POC")
-    
-    # Phase 7: Comparator
-    comp_delta = f"{comp['shift']['poc_shift_pct']:.2f}%" if 'shift' in comp else "N/A"
-    col2.metric("POC Profile Shift", f"${metrics['poc']:.2f}", delta=comp_delta, delta_color="normal",
-                help=comp.get('shift', {}).get('interpretation', 'No data'))
-    
-    # Phase 7: Migration Tracker
-    if 'trend' in tracker:
-        trend_color = "green" if tracker['trend'] == "UPTREND" else "red" if tracker['trend'] == "DOWNTREND" else "gray"
-        col3.markdown(f"**Migration:** :{trend_color}[{tracker['trend']}]")
-        st.caption(f"Str: {tracker.get('strength')}% | Vel: {tracker.get('velocity')}%")
+    if not data_loaded:
+        st.info("Open sidebar, enter a ticker, and click Run Analysis.")
     else:
-        col3.metric("Migration", "N/A")
+        # 1. Metrics Row
+        col1, col2, col3, col4 = st.columns(4)
     
-    col4.markdown(f"**Position:** :{pos_color}[{metrics['position']}]")
-
-    # 2. Charts
-    # Create subplots: Price on top, Volume on bottom
-    fig = make_subplots(rows=2, cols=2, shared_xaxes=True, 
-                        vertical_spacing=0.05, 
-                        row_heights=[0.7, 0.3],
-                        column_widths=[0.8, 0.2],
-                        horizontal_spacing=0.02,
-                        specs=[[{}, {"rowspan": 2}],
-                               [{}, None]]) # Profile on right sidebar spanning both rows
-
-    # Candlestick
-    fig.add_trace(go.Candlestick(x=df.index,
-                                 open=df['Open'], high=df['High'],
-                                 low=df['Low'], close=df['Close'],
-                                 name='Price'), row=1, col=1)
-
-    # Key Levels Lines
-    # Phase 5: POC Zone (Not just a line)
-    fig.add_hrect(y0=metrics['poc']*0.998, y1=metrics['poc']*1.002, 
-                  line_width=0, fillcolor="orange", opacity=0.2, annotation_text="POC Zone", row=1, col=1)
+        pos_color = "green" if "ABOVE" in metrics['position'] else "red" if "BELOW" in metrics['position'] else "orange"
     
-    fig.add_hline(y=metrics['vah'], line_dash="dash", line_color="green", annotation_text="VAH", row=1, col=1)
-    fig.add_hline(y=metrics['val'], line_dash="dash", line_color="red", annotation_text="VAL", row=1, col=1)
+        col1.metric("Current Price", f"${metrics['current_price']:.2f}", 
+                    delta=f"{metrics['distance_from_poc_pct']:.2f}% from POC")
     
-    # Phase 5: Previous Day's Levels (Comparison)
-    if len(daily_profiles) >= 2:
-        yest = daily_profiles[-2] # Last one is today, -2 is yesterday
-        fig.add_hline(y=yest['poc'], line_dash="dot", line_color="gray", opacity=0.5, annotation_text="Y-POC", row=1, col=1)
-        fig.add_hline(y=yest['vah'], line_dash="dot", line_color="gray", opacity=0.5, annotation_text="Y-VAH", row=1, col=1)
-        fig.add_hline(y=yest['val'], line_dash="dot", line_color="gray", opacity=0.5, annotation_text="Y-VAL", row=1, col=1)
-
-    # Volume Bars (Phase 5: Anomaly Detection)
-    # Color bar yellow if volume > 2 std dev
-    colors = []
-    for i, r in df.iterrows():
-        if r['Volume'] > (vol_mean + 2 * vol_std):
-            colors.append('yellow') # Anomaly
-        elif r['Close'] > r['Open']:
-            colors.append('green')
+        # Phase 7: Comparator
+        comp_delta = f"{comp['shift']['poc_shift_pct']:.2f}%" if 'shift' in comp else "N/A"
+        col2.metric("POC Profile Shift", f"${metrics['poc']:.2f}", delta=comp_delta, delta_color="normal",
+                    help=comp.get('shift', {}).get('interpretation', 'No data'))
+    
+        # Phase 7: Migration Tracker
+        if 'trend' in tracker:
+            trend_color = "green" if tracker['trend'] == "UPTREND" else "red" if tracker['trend'] == "DOWNTREND" else "gray"
+            col3.markdown(f"**Migration:** :{trend_color}[{tracker['trend']}]")
+            st.caption(f"Str: {tracker.get('strength')}% | Vel: {tracker.get('velocity')}%")
         else:
-            colors.append('red')
+            col3.metric("Migration", "N/A")
+    
+        col4.markdown(f"**Position:** :{pos_color}[{metrics['position']}]")
 
-    fig.add_trace(go.Bar(x=df.index, y=df['Volume'], marker_color=colors, name='Volume'), row=2, col=1)
+        # 2. Charts
+        # Create subplots: Price on top, Volume on bottom
+        fig = make_subplots(rows=2, cols=2, shared_xaxes=True, 
+                            vertical_spacing=0.05, 
+                            row_heights=[0.7, 0.3],
+                            column_widths=[0.8, 0.2],
+                            horizontal_spacing=0.02,
+                            specs=[[{}, {"rowspan": 2}],
+                                   [{}, None]]) # Profile on right sidebar spanning both rows
 
-    # Volume Profile (Horizontal Histogram)
-    # Volume Profile (Horizontal Histogram)
-    # Highlight Value Area
-    colors_vp = ['green' if metrics['val'] <= p <= metrics['vah'] else 'gray' for p in profile['price']]
-    fig.add_trace(go.Bar(x=profile['volume'], y=profile['price'], orientation='h', 
-                         marker_color=colors_vp, name='Profile', opacity=0.6), row=1, col=2)
+        # Candlestick
+        fig.add_trace(go.Candlestick(x=df.index,
+                                     open=df['Open'], high=df['High'],
+                                     low=df['Low'], close=df['Close'],
+                                     name='Price'), row=1, col=1)
 
-    fig.update_layout(height=900, xaxis_rangeslider_visible=False, title=f"{ticker} Volume Profile Analysis")
-    st.plotly_chart(fig, use_container_width=True)
+        # Key Levels Lines
+        # Phase 5: POC Zone (Not just a line)
+        fig.add_hrect(y0=metrics['poc']*0.998, y1=metrics['poc']*1.002, 
+                      line_width=0, fillcolor="orange", opacity=0.2, annotation_text="POC Zone", row=1, col=1)
+    
+        fig.add_hline(y=metrics['vah'], line_dash="dash", line_color="green", annotation_text="VAH", row=1, col=1)
+        fig.add_hline(y=metrics['val'], line_dash="dash", line_color="red", annotation_text="VAL", row=1, col=1)
+    
+        # Phase 5: Previous Day's Levels (Comparison)
+        if len(daily_profiles) >= 2:
+            yest = daily_profiles[-2] # Last one is today, -2 is yesterday
+            fig.add_hline(y=yest['poc'], line_dash="dot", line_color="gray", opacity=0.5, annotation_text="Y-POC", row=1, col=1)
+            fig.add_hline(y=yest['vah'], line_dash="dot", line_color="gray", opacity=0.5, annotation_text="Y-VAH", row=1, col=1)
+            fig.add_hline(y=yest['val'], line_dash="dot", line_color="gray", opacity=0.5, annotation_text="Y-VAL", row=1, col=1)
 
-    # --- AI ANALYSIS REPORT ---
-    st.markdown("---")
-    st.subheader("AI Analysis Report")
-    try:
-        report_gen = AIReportGenerator(metrics, ticker)
+        # Volume Bars (Phase 5: Anomaly Detection)
+        # Color bar yellow if volume > 2 std dev
+        colors = []
+        for i, r in df.iterrows():
+            if r['Volume'] > (vol_mean + 2 * vol_std):
+                colors.append('yellow') # Anomaly
+            elif r['Close'] > r['Open']:
+                colors.append('green')
+            else:
+                colors.append('red')
 
-        # Try to get patterns if available
+        fig.add_trace(go.Bar(x=df.index, y=df['Volume'], marker_color=colors, name='Volume'), row=2, col=1)
+
+        # Volume Profile (Horizontal Histogram)
+        # Volume Profile (Horizontal Histogram)
+        # Highlight Value Area
+        colors_vp = ['green' if metrics['val'] <= p <= metrics['vah'] else 'gray' for p in profile['price']]
+        fig.add_trace(go.Bar(x=profile['volume'], y=profile['price'], orientation='h', 
+                             marker_color=colors_vp, name='Profile', opacity=0.6), row=1, col=2)
+
+        fig.update_layout(height=900, xaxis_rangeslider_visible=False, title=f"{ticker} Volume Profile Analysis")
+        st.plotly_chart(fig, use_container_width=True)
+
+        # --- AI ANALYSIS REPORT ---
+        st.markdown("---")
+        st.subheader("AI Analysis Report")
         try:
-            from pattern_detector import ProfilePatternDetector
-            pat_det = ProfilePatternDetector(profile, df)
-            patterns = pat_det.detect_all_patterns()
-        except Exception:
-            patterns = None
+            report_gen = AIReportGenerator(metrics, ticker)
 
-        report_text = report_gen.generate(patterns=patterns)
-        st.markdown(report_text)
+            # Try to get patterns if available
+            try:
+                from pattern_detector import ProfilePatternDetector
+                pat_det = ProfilePatternDetector(profile, df)
+                patterns = pat_det.detect_all_patterns()
+            except Exception:
+                patterns = None
 
-        # Download button
-        download_text = report_gen.generate_downloadable(patterns=patterns)
-        st.download_button(
-            "Download Report (.txt)",
-            download_text,
-            file_name=f"{ticker}_analysis_{datetime.now().strftime('%Y%m%d_%H%M')}.txt",
-            mime="text/plain"
-        )
-    except Exception as e:
-        st.warning(f"Could not generate AI report: {e}")
+            report_text = report_gen.generate(patterns=patterns)
+            st.markdown(report_text)
+
+            # Download button
+            download_text = report_gen.generate_downloadable(patterns=patterns)
+            st.download_button(
+                "Download Report (.txt)",
+                download_text,
+                file_name=f"{ticker}_analysis_{datetime.now().strftime('%Y%m%d_%H%M')}.txt",
+                mime="text/plain"
+            )
+        except Exception as e:
+            st.warning(f"Could not generate AI report: {e}")
 
 
 # --- TAB 2: ORDER FLOW ---
 with tab2:
-    st.subheader("Order Flow Analysis")
+    if not data_loaded:
+        st.info("Run Analysis to view Order Flow data.")
+    else:
+        st.subheader("Order Flow Analysis")
 
-    of_period = st.selectbox("Order Flow Period", ['1d', '5d', '1mo'], index=1, key='of_period')
+        of_period = st.selectbox("Order Flow Period", ['1d', '5d', '1mo'], index=1, key='of_period')
 
-    if st.button("Analyze Order Flow"):
-        with st.spinner("Running order flow analysis..."):
-            try:
-                from order_flow import OrderFlowEngine
+        if st.button("Analyze Order Flow"):
+            with st.spinner("Running order flow analysis..."):
+                try:
+                    from order_flow import OrderFlowEngine
 
-                of_engine = OrderFlowEngine(ticker, period=of_period, interval='15m')
-                of_engine.fetch_data()
-                of_result = of_engine.analyze()
-                s = of_result.summary
+                    of_engine = OrderFlowEngine(ticker, period=of_period, interval='15m')
+                    of_engine.fetch_data()
+                    of_result = of_engine.analyze()
+                    s = of_result.summary
 
-                # --- Summary Metrics ---
-                st.markdown("### Flow Summary")
-                sm1, sm2, sm3, sm4 = st.columns(4)
-                control_color = "green" if s['overall_control'] == 'BUYERS' else "red"
-                sm1.metric("Overall Control", s['overall_control'])
-                sm2.metric("Buy %", f"{s['buy_pct']}%")
-                sm3.metric("VWAP", f"${s['vwap']:.2f}")
-                sm4.metric("Position", s['vwap_position'])
+                    # --- Summary Metrics ---
+                    st.markdown("### Flow Summary")
+                    sm1, sm2, sm3, sm4 = st.columns(4)
+                    control_color = "green" if s['overall_control'] == 'BUYERS' else "red"
+                    sm1.metric("Overall Control", s['overall_control'])
+                    sm2.metric("Buy %", f"{s['buy_pct']}%")
+                    sm3.metric("VWAP", f"${s['vwap']:.2f}")
+                    sm4.metric("Position", s['vwap_position'])
 
-                sm5, sm6, sm7, sm8 = st.columns(4)
-                sm5.metric("Net Delta", f"{s['net_delta']:,}")
-                sm6.metric("Recent Control", s['recent_control'])
-                sm7.metric("CVD Trend", s['cvd_trend'])
-                sm8.metric("Divergence", s['divergence_type'])
+                    sm5, sm6, sm7, sm8 = st.columns(4)
+                    sm5.metric("Net Delta", f"{s['net_delta']:,}")
+                    sm6.metric("Recent Control", s['recent_control'])
+                    sm7.metric("CVD Trend", s['cvd_trend'])
+                    sm8.metric("Divergence", s['divergence_type'])
 
-                # --- 1. VWAP + SD Chart ---
-                st.markdown("---")
-                st.markdown("### VWAP + Standard Deviation Bands")
-                st.caption("VWAP = institutional fair value. Price above VWAP = bullish, below = bearish. SD bands act as support/resistance.")
+                    # --- 1. VWAP + SD Chart ---
+                    st.markdown("---")
+                    st.markdown("### VWAP + Standard Deviation Bands")
+                    st.caption("VWAP = institutional fair value. Price above VWAP = bullish, below = bearish. SD bands act as support/resistance.")
 
-                delta_df = of_result.delta
-                fig_vwap = go.Figure()
-                fig_vwap.add_trace(go.Candlestick(
-                    x=delta_df.index, open=delta_df['Open'], high=delta_df['High'],
-                    low=delta_df['Low'], close=delta_df['Close'], name='Price'
-                ))
-                fig_vwap.add_trace(go.Scatter(
-                    x=delta_df.index, y=delta_df['VWAP'],
-                    line=dict(color='yellow', width=2), name='VWAP'
-                ))
-                fig_vwap.add_trace(go.Scatter(
-                    x=delta_df.index, y=delta_df['VWAP_1SD_Upper'],
-                    line=dict(color='rgba(0,200,255,0.4)', width=1, dash='dash'), name='+1 SD'
-                ))
-                fig_vwap.add_trace(go.Scatter(
-                    x=delta_df.index, y=delta_df['VWAP_1SD_Lower'],
-                    line=dict(color='rgba(0,200,255,0.4)', width=1, dash='dash'), name='-1 SD',
-                    fill='tonexty', fillcolor='rgba(0,200,255,0.05)'
-                ))
-                fig_vwap.add_trace(go.Scatter(
-                    x=delta_df.index, y=delta_df['VWAP_2SD_Upper'],
-                    line=dict(color='rgba(255,100,100,0.4)', width=1, dash='dot'), name='+2 SD'
-                ))
-                fig_vwap.add_trace(go.Scatter(
-                    x=delta_df.index, y=delta_df['VWAP_2SD_Lower'],
-                    line=dict(color='rgba(255,100,100,0.4)', width=1, dash='dot'), name='-2 SD',
-                    fill='tonexty', fillcolor='rgba(255,100,100,0.03)'
-                ))
-                fig_vwap.update_layout(
-                    height=500, xaxis_rangeslider_visible=False,
-                    template='plotly_dark', title=f'{ticker} VWAP + SD Bands'
-                )
-                st.plotly_chart(fig_vwap, use_container_width=True)
-
-                # --- 2. Delta + CVD Chart ---
-                st.markdown("---")
-                st.markdown("### Delta Analysis + Cumulative Volume Delta")
-                st.caption("Delta = buy volume minus sell volume per bar. CVD = running total. Rising CVD = buyer dominance.")
-
-                fig_delta = make_subplots(
-                    rows=2, cols=1, shared_xaxes=True,
-                    row_heights=[0.5, 0.5],
-                    subplot_titles=['Bar Delta (Buy - Sell Volume)', 'Cumulative Volume Delta (CVD)']
-                )
-
-                delta_colors = ['green' if d >= 0 else 'red' for d in delta_df['Delta']]
-                fig_delta.add_trace(go.Bar(
-                    x=delta_df.index, y=delta_df['Delta'],
-                    marker_color=delta_colors, name='Delta', opacity=0.8
-                ), row=1, col=1)
-
-                fig_delta.add_trace(go.Scatter(
-                    x=delta_df.index, y=delta_df['CVD'],
-                    line=dict(color='cyan', width=2), name='CVD',
-                    fill='tozeroy', fillcolor='rgba(0,255,255,0.1)'
-                ), row=2, col=1)
-
-                fig_delta.update_layout(height=600, template='plotly_dark')
-                st.plotly_chart(fig_delta, use_container_width=True)
-
-                # --- 3. Buy/Sell by Price Level ---
-                st.markdown("---")
-                st.markdown("### Buy/Sell Volume by Price Level")
-                st.caption("Shows who controls each price level. Green = buyer control, red = seller control.")
-
-                bs_data = of_engine.get_buy_sell_by_price(25)
-                if not bs_data.empty:
-                    fig_bs = go.Figure()
-                    fig_bs.add_trace(go.Bar(
-                        y=bs_data['price'], x=bs_data['buy_volume'],
-                        orientation='h', name='Buy Volume',
-                        marker_color='rgba(0,200,100,0.7)'
+                    delta_df = of_result.delta
+                    fig_vwap = go.Figure()
+                    fig_vwap.add_trace(go.Candlestick(
+                        x=delta_df.index, open=delta_df['Open'], high=delta_df['High'],
+                        low=delta_df['Low'], close=delta_df['Close'], name='Price'
                     ))
-                    fig_bs.add_trace(go.Bar(
-                        y=bs_data['price'], x=-bs_data['sell_volume'],
-                        orientation='h', name='Sell Volume',
-                        marker_color='rgba(255,80,80,0.7)'
+                    fig_vwap.add_trace(go.Scatter(
+                        x=delta_df.index, y=delta_df['VWAP'],
+                        line=dict(color='yellow', width=2), name='VWAP'
                     ))
-                    fig_bs.update_layout(
-                        height=500, template='plotly_dark', barmode='overlay',
-                        title='Buy vs Sell Volume at Each Price',
-                        xaxis_title='Volume (Buy positive, Sell negative)',
-                        yaxis_title='Price'
+                    fig_vwap.add_trace(go.Scatter(
+                        x=delta_df.index, y=delta_df['VWAP_1SD_Upper'],
+                        line=dict(color='rgba(0,200,255,0.4)', width=1, dash='dash'), name='+1 SD'
+                    ))
+                    fig_vwap.add_trace(go.Scatter(
+                        x=delta_df.index, y=delta_df['VWAP_1SD_Lower'],
+                        line=dict(color='rgba(0,200,255,0.4)', width=1, dash='dash'), name='-1 SD',
+                        fill='tonexty', fillcolor='rgba(0,200,255,0.05)'
+                    ))
+                    fig_vwap.add_trace(go.Scatter(
+                        x=delta_df.index, y=delta_df['VWAP_2SD_Upper'],
+                        line=dict(color='rgba(255,100,100,0.4)', width=1, dash='dot'), name='+2 SD'
+                    ))
+                    fig_vwap.add_trace(go.Scatter(
+                        x=delta_df.index, y=delta_df['VWAP_2SD_Lower'],
+                        line=dict(color='rgba(255,100,100,0.4)', width=1, dash='dot'), name='-2 SD',
+                        fill='tonexty', fillcolor='rgba(255,100,100,0.03)'
+                    ))
+                    fig_vwap.update_layout(
+                        height=500, xaxis_rangeslider_visible=False,
+                        template='plotly_dark', title=f'{ticker} VWAP + SD Bands'
                     )
-                    st.plotly_chart(fig_bs, use_container_width=True)
+                    st.plotly_chart(fig_vwap, use_container_width=True)
 
-                # --- 4. Large Blocks ---
-                st.markdown("---")
-                st.markdown("### Large Block Detection (Institutional Footprint)")
-                st.caption("Bars with volume > 2x standard deviations above average. EXTREME = 3x+ SD.")
+                    # --- 2. Delta + CVD Chart ---
+                    st.markdown("---")
+                    st.markdown("### Delta Analysis + Cumulative Volume Delta")
+                    st.caption("Delta = buy volume minus sell volume per bar. CVD = running total. Rising CVD = buyer dominance.")
 
-                if not of_result.large_blocks.empty:
-                    lb = of_result.large_blocks.copy()
-                    lb.index = lb.index.strftime('%Y-%m-%d %H:%M') if hasattr(lb.index, 'strftime') else lb.index
-                    st.dataframe(
-                        lb, use_container_width=True,
-                        column_config={
-                            'Close': st.column_config.NumberColumn('Price', format='$%.2f'),
-                            'Volume': st.column_config.NumberColumn('Volume', format='%d'),
-                            'Vol_Multiple': st.column_config.NumberColumn('x Avg', format='%.1fx'),
-                            'Price_Impact': st.column_config.NumberColumn('Impact %', format='%.3f%%'),
-                            'Delta': st.column_config.NumberColumn('Delta', format='%d'),
-                        }
+                    fig_delta = make_subplots(
+                        rows=2, cols=1, shared_xaxes=True,
+                        row_heights=[0.5, 0.5],
+                        subplot_titles=['Bar Delta (Buy - Sell Volume)', 'Cumulative Volume Delta (CVD)']
                     )
-                else:
-                    st.info("No large blocks detected in this period.")
 
-                # --- 5. Absorption Events ---
-                st.markdown("---")
-                st.markdown("### Absorption Detection")
-                st.caption("High volume + no price movement = hidden buying/selling. Strong reversal signal.")
+                    delta_colors = ['green' if d >= 0 else 'red' for d in delta_df['Delta']]
+                    fig_delta.add_trace(go.Bar(
+                        x=delta_df.index, y=delta_df['Delta'],
+                        marker_color=delta_colors, name='Delta', opacity=0.8
+                    ), row=1, col=1)
 
-                if not of_result.absorption.empty:
-                    ab = of_result.absorption.copy()
-                    ab.index = ab.index.strftime('%Y-%m-%d %H:%M') if hasattr(ab.index, 'strftime') else ab.index
-                    st.dataframe(
-                        ab, use_container_width=True,
-                        column_config={
-                            'Close': st.column_config.NumberColumn('Price', format='$%.2f'),
-                            'Volume': st.column_config.NumberColumn('Volume', format='%d'),
-                            'Vol_Multiple': st.column_config.NumberColumn('x Avg', format='%.1fx'),
-                            'Range': st.column_config.NumberColumn('Range', format='$%.4f'),
-                            'Range_Ratio': st.column_config.NumberColumn('Range Ratio', format='%.2fx'),
-                            'Delta': st.column_config.NumberColumn('Delta', format='%d'),
-                        }
-                    )
-                else:
-                    st.info("No absorption events detected in this period.")
+                    fig_delta.add_trace(go.Scatter(
+                        x=delta_df.index, y=delta_df['CVD'],
+                        line=dict(color='cyan', width=2), name='CVD',
+                        fill='tozeroy', fillcolor='rgba(0,255,255,0.1)'
+                    ), row=2, col=1)
 
-            except Exception as e:
-                st.error(f"Order Flow Error: {e}")
+                    fig_delta.update_layout(height=600, template='plotly_dark')
+                    st.plotly_chart(fig_delta, use_container_width=True)
+
+                    # --- 3. Buy/Sell by Price Level ---
+                    st.markdown("---")
+                    st.markdown("### Buy/Sell Volume by Price Level")
+                    st.caption("Shows who controls each price level. Green = buyer control, red = seller control.")
+
+                    bs_data = of_engine.get_buy_sell_by_price(25)
+                    if not bs_data.empty:
+                        fig_bs = go.Figure()
+                        fig_bs.add_trace(go.Bar(
+                            y=bs_data['price'], x=bs_data['buy_volume'],
+                            orientation='h', name='Buy Volume',
+                            marker_color='rgba(0,200,100,0.7)'
+                        ))
+                        fig_bs.add_trace(go.Bar(
+                            y=bs_data['price'], x=-bs_data['sell_volume'],
+                            orientation='h', name='Sell Volume',
+                            marker_color='rgba(255,80,80,0.7)'
+                        ))
+                        fig_bs.update_layout(
+                            height=500, template='plotly_dark', barmode='overlay',
+                            title='Buy vs Sell Volume at Each Price',
+                            xaxis_title='Volume (Buy positive, Sell negative)',
+                            yaxis_title='Price'
+                        )
+                        st.plotly_chart(fig_bs, use_container_width=True)
+
+                    # --- 4. Large Blocks ---
+                    st.markdown("---")
+                    st.markdown("### Large Block Detection (Institutional Footprint)")
+                    st.caption("Bars with volume > 2x standard deviations above average. EXTREME = 3x+ SD.")
+
+                    if not of_result.large_blocks.empty:
+                        lb = of_result.large_blocks.copy()
+                        lb.index = lb.index.strftime('%Y-%m-%d %H:%M') if hasattr(lb.index, 'strftime') else lb.index
+                        st.dataframe(
+                            lb, use_container_width=True,
+                            column_config={
+                                'Close': st.column_config.NumberColumn('Price', format='$%.2f'),
+                                'Volume': st.column_config.NumberColumn('Volume', format='%d'),
+                                'Vol_Multiple': st.column_config.NumberColumn('x Avg', format='%.1fx'),
+                                'Price_Impact': st.column_config.NumberColumn('Impact %', format='%.3f%%'),
+                                'Delta': st.column_config.NumberColumn('Delta', format='%d'),
+                            }
+                        )
+                    else:
+                        st.info("No large blocks detected in this period.")
+
+                    # --- 5. Absorption Events ---
+                    st.markdown("---")
+                    st.markdown("### Absorption Detection")
+                    st.caption("High volume + no price movement = hidden buying/selling. Strong reversal signal.")
+
+                    if not of_result.absorption.empty:
+                        ab = of_result.absorption.copy()
+                        ab.index = ab.index.strftime('%Y-%m-%d %H:%M') if hasattr(ab.index, 'strftime') else ab.index
+                        st.dataframe(
+                            ab, use_container_width=True,
+                            column_config={
+                                'Close': st.column_config.NumberColumn('Price', format='$%.2f'),
+                                'Volume': st.column_config.NumberColumn('Volume', format='%d'),
+                                'Vol_Multiple': st.column_config.NumberColumn('x Avg', format='%.1fx'),
+                                'Range': st.column_config.NumberColumn('Range', format='$%.4f'),
+                                'Range_Ratio': st.column_config.NumberColumn('Range Ratio', format='%.2fx'),
+                                'Delta': st.column_config.NumberColumn('Delta', format='%d'),
+                            }
+                        )
+                    else:
+                        st.info("No absorption events detected in this period.")
+
+                except Exception as e:
+                    st.error(f"Order Flow Error: {e}")
 
 # --- TAB: ANALYTICS (Advanced + Multi-TF + Correlation + Watchlist) ---
 with tab_analytics:
-    analytics_sub = st.tabs(["Advanced", "Multi-TF", "Correlation", "Watchlist"])
-    with analytics_sub[0]:
-        st.subheader("Advanced Volume & Market Profile Analytics")
-        adv_tabs = st.tabs(["Market Profile (TPO)", "Composite Profiles", "Volume Nodes", "Patterns & Stats"])
+    if not data_loaded:
+        st.info("Run Analysis to view Analytics data.")
+    else:
+        analytics_sub = st.tabs(["Advanced", "Multi-TF", "Correlation", "Watchlist"])
+        with analytics_sub[0]:
+            st.subheader("Advanced Volume & Market Profile Analytics")
+            adv_tabs = st.tabs(["Market Profile (TPO)", "Composite Profiles", "Volume Nodes", "Patterns & Stats"])
     
-        # 1. Market Profile (TPO)
-        with adv_tabs[0]:
-            st.markdown("### Market Profile (TPO)")
-            try:
-                mp_engine = MarketProfileEngine(ticker)
-                tpo_data = mp_engine.calculate_tpo_profile()
-            
-                if tpo_data:
-                    # Top Metrics
-                    m1, m2, m3 = st.columns(3)
-                    m1.metric("Day Type", tpo_data['day_type'])
-                    m2.metric("IB Range", f"{tpo_data['initial_balance']['low']:.2f} - {tpo_data['initial_balance']['high']:.2f}")
-                    m3.metric("Profile Shape", tpo_data['shape']['shape'], help=tpo_data['shape']['description'])
-                
-                    # TPO Chart (Text-based approximation)
-                    st.write("#### TPO Structure")
-                    tpo_container = st.container(height=600)
-                    with tpo_container:
-                        # Create a dataframe for display
-                        tpo_df = pd.DataFrame(tpo_data['profile'])
-                        if not tpo_df.empty:
-                            # Format for display: Price | Letters
-                            tpo_df['Price'] = tpo_df['price'].apply(lambda x: f"{x:.2f}")
-                            tpo_df['Structure'] = tpo_df['letter_string']
-                            st.dataframe(
-                                tpo_df[['Price', 'Structure', 'tpo_count']], 
-                                use_container_width=True,
-                                height=550,
-                                hide_index=True
-                            )
-                else:
-                    st.warning("No TPO data available.")
-            except Exception as e:
-                st.error(f"Error loading TPO: {e}")
-
-        # 2. Composite Profiles
-        with adv_tabs[1]:
-            st.markdown("### Composite Profiles (Multi-Day Value)")
-        
-            col_comp_set, col_comp_viz = st.columns([1, 3])
-        
-            with col_comp_set:
-                comp_days = st.select_slider("Composite Period (Days)", options=[5, 10, 20, 30, 60], value=10)
-                comp_weight = st.selectbox("Weighting", ["equal", "linear", "exponential"], index=2)
-            
-                if st.button("Build Composite"):
-                    st.session_state['run_composite'] = True
-                
-            if st.session_state.get('run_composite', False):
+            # 1. Market Profile (TPO)
+            with adv_tabs[0]:
+                st.markdown("### Market Profile (TPO)")
                 try:
-                    comp_builder = CompositeProfileBuilder(ticker)
-                    comp = comp_builder.build_composite(days=comp_days, weighting=comp_weight)
+                    mp_engine = MarketProfileEngine(ticker)
+                    tpo_data = mp_engine.calculate_tpo_profile()
+            
+                    if tpo_data:
+                        # Top Metrics
+                        m1, m2, m3 = st.columns(3)
+                        m1.metric("Day Type", tpo_data['day_type'])
+                        m2.metric("IB Range", f"{tpo_data['initial_balance']['low']:.2f} - {tpo_data['initial_balance']['high']:.2f}")
+                        m3.metric("Profile Shape", tpo_data['shape']['shape'], help=tpo_data['shape']['description'])
                 
-                    if comp:
-                        # Metrics
-                        c1, c2, c3 = st.columns(3)
-                        c1.metric("Composite POC", f"${comp['poc']:.2f}")
-                        c2.metric("Composite VAH", f"${comp['vah']:.2f}")
-                        c3.metric("Composite VAL", f"${comp['val']:.2f}")
-                    
-                        # Chart
-                        comp_df = pd.DataFrame(comp['profile'])
-                        fig_comp = px.bar(
-                            comp_df, y='Price', x='Volume', orientation='h',
-                            title=f"{comp_days}-Day Composite Profile ({comp_weight})",
-                            height=600
-                        )
-                        # Add VA lines
-                        fig_comp.add_hline(y=comp['poc'], line_dash="dash", line_color="red", annotation_text="POC")
-                        fig_comp.add_hline(y=comp['vah'], line_dash="dash", line_color="green", annotation_text="VAH")
-                        fig_comp.add_hline(y=comp['val'], line_dash="dash", line_color="green", annotation_text="VAL")
-                        st.plotly_chart(fig_comp, use_container_width=True)
-                    
-                        # Confluence Check
-                        st.markdown("#### Confluence Check")
-                        conf = comp_builder.compare_composites([5, 10, 20])
-                        if conf['confluence']:
-                            for c in conf['confluence']:
-                                st.success(f"Confluence Zone at ${c['price']:.2f} (Matches: {c['timeframes']})")
-                        else:
-                            st.info("No strong confluence detected across timeframes.")
+                        # TPO Chart (Text-based approximation)
+                        st.write("#### TPO Structure")
+                        tpo_container = st.container(height=600)
+                        with tpo_container:
+                            # Create a dataframe for display
+                            tpo_df = pd.DataFrame(tpo_data['profile'])
+                            if not tpo_df.empty:
+                                # Format for display: Price | Letters
+                                tpo_df['Price'] = tpo_df['price'].apply(lambda x: f"{x:.2f}")
+                                tpo_df['Structure'] = tpo_df['letter_string']
+                                st.dataframe(
+                                    tpo_df[['Price', 'Structure', 'tpo_count']], 
+                                    use_container_width=True,
+                                    height=550,
+                                    hide_index=True
+                                )
+                    else:
+                        st.warning("No TPO data available.")
                 except Exception as e:
-                    st.error(f"Composite Error: {e}")
+                    st.error(f"Error loading TPO: {e}")
 
-        # 3. Volume Nodes
-        with adv_tabs[2]:
-            st.markdown("### Volume Nodes & Breakout Zones")
-            try:
-                # Use data from main engine or fetch fresh
-                vn_engine = VolumeProfileEngine(ticker, period="1mo")
-                vn_engine.calculate_volume_profile()
-            
-                detector = VolumeNodeDetector(vn_engine.volume_profile)
-                nodes = detector.find_all_nodes()
-                breakouts = detector.identify_breakout_zones()
-            
-                c_hvn, c_lvn = st.columns(2)
-            
-                with c_hvn:
-                    st.markdown("#### High Volume Nodes (Support/Resistance)")
-                    if nodes['hvn_clusters']:
-                        for hvn in nodes['hvn_clusters'][:5]: # Top 5
-                            st.success(f"**${hvn['price_center']:.2f}** (Vol: {int(hvn['total_volume'] / 1000)}k)")
-                            st.progress(min(hvn['strength']/100, 1.0))
-                    else:
-                        st.info("No significant HVNs")
-                    
-                with c_lvn:
-                    st.markdown("#### Breakout Zones (LVN Gaps)")
-                    if breakouts:
-                        for bo in breakouts:
-                            st.warning(f"**Breakout Zone**: ${bo['support']:.2f} - ${bo['resistance']:.2f}")
-                            st.caption(f"Width: ${bo['width']:.2f}")
-                    else:
-                        st.info("No clear breakout zones")
-                    
-            except Exception as e:
-                st.error(f"Node Detection Error: {e}")
-
-        # 4. Patterns & Stats
-        with adv_tabs[3]:
-            st.markdown("### Pattern Recognition & Deep Stats")
+            # 2. Composite Profiles
+            with adv_tabs[1]:
+                st.markdown("### Composite Profiles (Multi-Day Value)")
         
-            try:
-                # Re-use engine data
-                stats_engine = VolumeProfileEngine(ticker, period="1mo")
-                stats_metrics = stats_engine.get_all_metrics()
+                col_comp_set, col_comp_viz = st.columns([1, 3])
+        
+                with col_comp_set:
+                    comp_days = st.select_slider("Composite Period (Days)", options=[5, 10, 20, 30, 60], value=10)
+                    comp_weight = st.selectbox("Weighting", ["equal", "linear", "exponential"], index=2)
             
-                # Patterns
-                pat_det = ProfilePatternDetector(stats_engine.volume_profile, stats_engine.data)
-                patterns = pat_det.detect_all_patterns()
-            
-                st.markdown("#### Detected Patterns")
-                # Poor High/Low
-                p_cols = st.columns(2)
-                if patterns['poor_highs_lows']['poor_high']['detected']:
-                    p_cols[0].error(f"Poor High at ${patterns['poor_highs_lows']['poor_high']['price']:.2f}")
-                else:
-                    p_cols[0].success("Clean High")
+                    if st.button("Build Composite"):
+                        st.session_state['run_composite'] = True
                 
-                if patterns['poor_highs_lows']['poor_low']['detected']:
-                    p_cols[1].error(f"Poor Low at ${patterns['poor_highs_lows']['poor_low']['price']:.2f}")
-                else:
-                    p_cols[1].success("Clean Low")
+                if st.session_state.get('run_composite', False):
+                    try:
+                        comp_builder = CompositeProfileBuilder(ticker)
+                        comp = comp_builder.build_composite(days=comp_days, weighting=comp_weight)
                 
-                # Excess
-                if patterns['excess']:
-                    for ex in patterns['excess']:
-                        st.info(f"tail: {ex['type']} at ${ex['price']:.2f} ({ex['interpretation']})")
+                        if comp:
+                            # Metrics
+                            c1, c2, c3 = st.columns(3)
+                            c1.metric("Composite POC", f"${comp['poc']:.2f}")
+                            c2.metric("Composite VAH", f"${comp['vah']:.2f}")
+                            c3.metric("Composite VAL", f"${comp['val']:.2f}")
+                    
+                            # Chart
+                            comp_df = pd.DataFrame(comp['profile'])
+                            fig_comp = px.bar(
+                                comp_df, y='Price', x='Volume', orientation='h',
+                                title=f"{comp_days}-Day Composite Profile ({comp_weight})",
+                                height=600
+                            )
+                            # Add VA lines
+                            fig_comp.add_hline(y=comp['poc'], line_dash="dash", line_color="red", annotation_text="POC")
+                            fig_comp.add_hline(y=comp['vah'], line_dash="dash", line_color="green", annotation_text="VAH")
+                            fig_comp.add_hline(y=comp['val'], line_dash="dash", line_color="green", annotation_text="VAL")
+                            st.plotly_chart(fig_comp, use_container_width=True)
+                    
+                            # Confluence Check
+                            st.markdown("#### Confluence Check")
+                            conf = comp_builder.compare_composites([5, 10, 20])
+                            if conf['confluence']:
+                                for c in conf['confluence']:
+                                    st.success(f"Confluence Zone at ${c['price']:.2f} (Matches: {c['timeframes']})")
+                            else:
+                                st.info("No strong confluence detected across timeframes.")
+                    except Exception as e:
+                        st.error(f"Composite Error: {e}")
+
+            # 3. Volume Nodes
+            with adv_tabs[2]:
+                st.markdown("### Volume Nodes & Breakout Zones")
+                try:
+                    # Use data from main engine or fetch fresh
+                    vn_engine = VolumeProfileEngine(ticker, period="1mo")
+                    vn_engine.calculate_volume_profile()
             
-                # VA Status
-                st.markdown("#### Value Area Status")
-                va_stat = patterns['value_area_status']
-                st.metric("Status", va_stat['status'], va_stat['interpretation'])
+                    detector = VolumeNodeDetector(vn_engine.volume_profile)
+                    nodes = detector.find_all_nodes()
+                    breakouts = detector.identify_breakout_zones()
             
-                st.markdown("---")
+                    c_hvn, c_lvn = st.columns(2)
             
-                # Statistics
-                st.markdown("#### Deep Statistics")
-                prof_stats = ProfileStatistics(
-                    stats_engine.volume_profile, stats_engine.data, 
-                    stats_metrics['poc'], stats_metrics['vah'], stats_metrics['val']
-                )
-                full_stats = prof_stats.calculate_all_statistics()
+                    with c_hvn:
+                        st.markdown("#### High Volume Nodes (Support/Resistance)")
+                        if nodes['hvn_clusters']:
+                            for hvn in nodes['hvn_clusters'][:5]: # Top 5
+                                st.success(f"**${hvn['price_center']:.2f}** (Vol: {int(hvn['total_volume'] / 1000)}k)")
+                                st.progress(min(hvn['strength']/100, 1.0))
+                        else:
+                            st.info("No significant HVNs")
+                    
+                    with c_lvn:
+                        st.markdown("#### Breakout Zones (LVN Gaps)")
+                        if breakouts:
+                            for bo in breakouts:
+                                st.warning(f"**Breakout Zone**: ${bo['support']:.2f} - ${bo['resistance']:.2f}")
+                                st.caption(f"Width: ${bo['width']:.2f}")
+                        else:
+                            st.info("No clear breakout zones")
+                    
+                except Exception as e:
+                    st.error(f"Node Detection Error: {e}")
+
+            # 4. Patterns & Stats
+            with adv_tabs[3]:
+                st.markdown("### Pattern Recognition & Deep Stats")
+        
+                try:
+                    # Re-use engine data
+                    stats_engine = VolumeProfileEngine(ticker, period="1mo")
+                    stats_metrics = stats_engine.get_all_metrics()
             
-                row1 = st.columns(3)
-                row1[0].metric("Profile Efficiency", f"{full_stats['profile_efficiency']['efficiency_pct']:.1f}%")
-                row1[1].metric("Review Bias", full_stats['volume_distribution']['bias'])
-                row1[2].metric("Volatility", full_stats['profile_width']['volatility'])
+                    # Patterns
+                    pat_det = ProfilePatternDetector(stats_engine.volume_profile, stats_engine.data)
+                    patterns = pat_det.detect_all_patterns()
             
-                st.caption(f"Time in VA: {full_stats['time_in_va'].get('pct_inside_va', 0):.1f}%")
+                    st.markdown("#### Detected Patterns")
+                    # Poor High/Low
+                    p_cols = st.columns(2)
+                    if patterns['poor_highs_lows']['poor_high']['detected']:
+                        p_cols[0].error(f"Poor High at ${patterns['poor_highs_lows']['poor_high']['price']:.2f}")
+                    else:
+                        p_cols[0].success("Clean High")
+                
+                    if patterns['poor_highs_lows']['poor_low']['detected']:
+                        p_cols[1].error(f"Poor Low at ${patterns['poor_highs_lows']['poor_low']['price']:.2f}")
+                    else:
+                        p_cols[1].success("Clean Low")
+                
+                    # Excess
+                    if patterns['excess']:
+                        for ex in patterns['excess']:
+                            st.info(f"tail: {ex['type']} at ${ex['price']:.2f} ({ex['interpretation']})")
             
-            except Exception as e:
-                st.error(f"Stats Error: {e}")
+                    # VA Status
+                    st.markdown("#### Value Area Status")
+                    va_stat = patterns['value_area_status']
+                    st.metric("Status", va_stat['status'], va_stat['interpretation'])
+            
+                    st.markdown("---")
+            
+                    # Statistics
+                    st.markdown("#### Deep Statistics")
+                    prof_stats = ProfileStatistics(
+                        stats_engine.volume_profile, stats_engine.data, 
+                        stats_metrics['poc'], stats_metrics['vah'], stats_metrics['val']
+                    )
+                    full_stats = prof_stats.calculate_all_statistics()
+            
+                    row1 = st.columns(3)
+                    row1[0].metric("Profile Efficiency", f"{full_stats['profile_efficiency']['efficiency_pct']:.1f}%")
+                    row1[1].metric("Review Bias", full_stats['volume_distribution']['bias'])
+                    row1[2].metric("Volatility", full_stats['profile_width']['volatility'])
+            
+                    st.caption(f"Time in VA: {full_stats['time_in_va'].get('pct_inside_va', 0):.1f}%")
+            
+                except Exception as e:
+                    st.error(f"Stats Error: {e}")
 
 # --- TAB: TOOLS (Scanner + Sessions + Risk) ---
 with tab_tools:
-    tools_sub = st.tabs(["Scanner", "Sessions", "Risk Calculator"])
-    with tools_sub[0]:
-        st.subheader("Multi-Asset Scanner")
+    if not data_loaded:
+        st.info("Run Analysis to view Tools data.")
+    else:
+        tools_sub = st.tabs(["Scanner", "Sessions", "Risk Calculator"])
+        with tools_sub[0]:
+            st.subheader("Multi-Asset Scanner")
 
-        scan_col1, scan_col2 = st.columns([2, 1])
-        with scan_col1:
-            watchlist_name = st.selectbox(
-                "Watchlist",
-                list(WATCHLISTS.keys()),
-                format_func=lambda x: f"{x} ({len(WATCHLISTS[x])} tickers)"
-            )
-        with scan_col2:
-            custom_tickers = st.text_input(
-                "Or enter custom tickers (comma-separated)",
-                placeholder="AAPL, MSFT, TSLA"
-            )
+            scan_col1, scan_col2 = st.columns([2, 1])
+            with scan_col1:
+                watchlist_name = st.selectbox(
+                    "Watchlist",
+                    list(WATCHLISTS.keys()),
+                    format_func=lambda x: f"{x} ({len(WATCHLISTS[x])} tickers)"
+                )
+            with scan_col2:
+                custom_tickers = st.text_input(
+                    "Or enter custom tickers (comma-separated)",
+                    placeholder="AAPL, MSFT, TSLA"
+                )
 
-        if st.button("Run Scanner"):
-            tickers_to_scan = (
-                [t.strip().upper() for t in custom_tickers.split(',') if t.strip()]
-                if custom_tickers
-                else WATCHLISTS[watchlist_name]
-            )
+            if st.button("Run Scanner"):
+                tickers_to_scan = (
+                    [t.strip().upper() for t in custom_tickers.split(',') if t.strip()]
+                    if custom_tickers
+                    else WATCHLISTS[watchlist_name]
+                )
 
-            with st.spinner(f"Scanning {len(tickers_to_scan)} tickers..."):
-                scanner = VolumeProfileScanner(tickers_to_scan)
-                results = scanner.scan_all()
+                with st.spinner(f"Scanning {len(tickers_to_scan)} tickers..."):
+                    scanner = VolumeProfileScanner(tickers_to_scan)
+                    results = scanner.scan_all()
 
-                if results:
-                    st.success(f"Scanned {len(results)} tickers successfully!")
+                    if results:
+                        st.success(f"Scanned {len(results)} tickers successfully!")
 
-                    # Top metrics
-                    top = results[0]
-                    s1, s2, s3 = st.columns(3)
-                    s1.metric("Best Opportunity", top['ticker'], f"Score: {top['opportunity_score']}/100")
-                    s2.metric("Price", f"${top['current_price']:.2f}")
-                    s3.metric("Position", top['position'])
+                        # Top metrics
+                        top = results[0]
+                        s1, s2, s3 = st.columns(3)
+                        s1.metric("Best Opportunity", top['ticker'], f"Score: {top['opportunity_score']}/100")
+                        s2.metric("Price", f"${top['current_price']:.2f}")
+                        s3.metric("Position", top['position'])
 
-                    # Results table
-                    scan_df = scanner.to_dataframe()
-                    display_cols = ['ticker', 'opportunity_score', 'current_price',
-                                    'poc', 'vah', 'val', 'position', 'distance_from_poc_pct', 'signal']
-                    display_cols = [c for c in display_cols if c in scan_df.columns]
-                    st.dataframe(
-                        scan_df[display_cols],
-                        use_container_width=True,
-                        hide_index=True,
-                        column_config={
-                            'opportunity_score': st.column_config.ProgressColumn(
-                                'Score', min_value=0, max_value=100, format='%d'
-                            ),
-                            'current_price': st.column_config.NumberColumn('Price', format='$%.2f'),
-                            'poc': st.column_config.NumberColumn('POC', format='$%.2f'),
-                            'vah': st.column_config.NumberColumn('VAH', format='$%.2f'),
-                            'val': st.column_config.NumberColumn('VAL', format='$%.2f'),
-                        }
-                    )
+                        # Results table
+                        scan_df = scanner.to_dataframe()
+                        display_cols = ['ticker', 'opportunity_score', 'current_price',
+                                        'poc', 'vah', 'val', 'position', 'distance_from_poc_pct', 'signal']
+                        display_cols = [c for c in display_cols if c in scan_df.columns]
+                        st.dataframe(
+                            scan_df[display_cols],
+                            use_container_width=True,
+                            hide_index=True,
+                            column_config={
+                                'opportunity_score': st.column_config.ProgressColumn(
+                                    'Score', min_value=0, max_value=100, format='%d'
+                                ),
+                                'current_price': st.column_config.NumberColumn('Price', format='$%.2f'),
+                                'poc': st.column_config.NumberColumn('POC', format='$%.2f'),
+                                'vah': st.column_config.NumberColumn('VAH', format='$%.2f'),
+                                'val': st.column_config.NumberColumn('VAL', format='$%.2f'),
+                            }
+                        )
 
-                    # Export
-                    csv = scan_df.to_csv(index=False)
-                    st.download_button("Export CSV", csv, "scan_results.csv", "text/csv")
+                        # Export
+                        csv = scan_df.to_csv(index=False)
+                        st.download_button("Export CSV", csv, "scan_results.csv", "text/csv")
 
-                if scanner.errors:
-                    with st.expander(f"{len(scanner.errors)} errors"):
-                        for err in scanner.errors:
-                            st.caption(f"{err['ticker']}: {err['error']}")
+                    if scanner.errors:
+                        with st.expander(f"{len(scanner.errors)} errors"):
+                            for err in scanner.errors:
+                                st.caption(f"{err['ticker']}: {err['error']}")
 
-    with tools_sub[1]:
-        st.subheader("Session Analysis (Asia / London / NY)")
+        with tools_sub[1]:
+            st.subheader("Session Analysis (Asia / London / NY)")
 
-        if st.button("Analyze Sessions"):
-            with st.spinner(f"Analyzing sessions for {ticker}..."):
-                try:
-                    sess_analyzer = SessionAnalyzer(ticker)
-                    sessions = sess_analyzer.analyze_sessions()
-                    comparison = sess_analyzer.get_session_comparison()
+            if st.button("Analyze Sessions"):
+                with st.spinner(f"Analyzing sessions for {ticker}..."):
+                    try:
+                        sess_analyzer = SessionAnalyzer(ticker)
+                        sessions = sess_analyzer.analyze_sessions()
+                        comparison = sess_analyzer.get_session_comparison()
 
-                    # Session cards
-                    sc1, sc2, sc3 = st.columns(3)
-                    session_cols = {'Asia': sc1, 'London': sc2, 'NY': sc3}
-                    session_colors = {'Asia': 'ASIA', 'London': 'LDN', 'NY': 'US'}
+                        # Session cards
+                        sc1, sc2, sc3 = st.columns(3)
+                        session_cols = {'Asia': sc1, 'London': sc2, 'NY': sc3}
+                        session_colors = {'Asia': 'ASIA', 'London': 'LDN', 'NY': 'US'}
 
-                    for name, col in session_cols.items():
-                        data = sessions.get(name, {})
-                        with col:
-                            st.markdown(f"### {session_colors[name]} {name}")
-                            if data.get('status') == 'OK':
-                                st.metric("POC", f"${data['poc']:.2f}")
-                                st.metric("Volume", f"{data['volume']:,}")
-                                st.metric("Range", f"${data['range']:.2f}")
-                                st.caption(f"High: ${data['high']:.2f} | Low: ${data['low']:.2f}")
-                            else:
-                                st.info("No data for this session")
+                        for name, col in session_cols.items():
+                            data = sessions.get(name, {})
+                            with col:
+                                st.markdown(f"### {session_colors[name]} {name}")
+                                if data.get('status') == 'OK':
+                                    st.metric("POC", f"${data['poc']:.2f}")
+                                    st.metric("Volume", f"{data['volume']:,}")
+                                    st.metric("Range", f"${data['range']:.2f}")
+                                    st.caption(f"High: ${data['high']:.2f} | Low: ${data['low']:.2f}")
+                                else:
+                                    st.info("No data for this session")
 
-                    # Comparison
-                    st.markdown("---")
-                    st.markdown("### Session Comparison")
-                    cc1, cc2, cc3 = st.columns(3)
-                    cc1.metric("Dominant Session", comparison.get('dominant_session', 'N/A'))
-                    cc2.metric("POC Direction", comparison.get('poc_direction', 'N/A'),
-                               delta=f"{comparison.get('poc_shift_pct', 0):.3f}%")
-                    cc3.metric("Overnight Gap", comparison.get('gap_type', 'N/A'),
-                               delta=f"${comparison.get('overnight_gap', 0):.2f}")
+                        # Comparison
+                        st.markdown("---")
+                        st.markdown("### Session Comparison")
+                        cc1, cc2, cc3 = st.columns(3)
+                        cc1.metric("Dominant Session", comparison.get('dominant_session', 'N/A'))
+                        cc2.metric("POC Direction", comparison.get('poc_direction', 'N/A'),
+                                   delta=f"{comparison.get('poc_shift_pct', 0):.3f}%")
+                        cc3.metric("Overnight Gap", comparison.get('gap_type', 'N/A'),
+                                   delta=f"${comparison.get('overnight_gap', 0):.2f}")
 
-                    # Volume breakdown
-                    vol_breakdown = comparison.get('volume_breakdown', {})
-                    if vol_breakdown:
-                        st.markdown("#### Volume Distribution")
-                        vol_data = pd.DataFrame([
-                            {'Session': k, 'Volume': v['volume'], 'Pct': v['pct']}
-                            for k, v in vol_breakdown.items()
-                        ])
-                        fig_vol = px.pie(vol_data, values='Volume', names='Session',
-                                         title='Volume by Session', hole=0.4)
-                        st.plotly_chart(fig_vol, use_container_width=True)
+                        # Volume breakdown
+                        vol_breakdown = comparison.get('volume_breakdown', {})
+                        if vol_breakdown:
+                            st.markdown("#### Volume Distribution")
+                            vol_data = pd.DataFrame([
+                                {'Session': k, 'Volume': v['volume'], 'Pct': v['pct']}
+                                for k, v in vol_breakdown.items()
+                            ])
+                            fig_vol = px.pie(vol_data, values='Volume', names='Session',
+                                             title='Volume by Session', hole=0.4)
+                            st.plotly_chart(fig_vol, use_container_width=True)
 
-                except Exception as e:
-                    st.error(f"Session Analysis Error: {e}")
+                    except Exception as e:
+                        st.error(f"Session Analysis Error: {e}")
 
-    with tools_sub[2]:
-        st.subheader("Risk Calculator")
+        with tools_sub[2]:
+            st.subheader("Risk Calculator")
 
-        # Settings
-        risk_col1, risk_col2 = st.columns(2)
-        with risk_col1:
-            acct_size = st.number_input("Account Size ($)", value=10000, min_value=100, step=1000)
-            risk_pct = st.slider("Risk Per Trade (%)", 0.1, 5.0, 1.0, 0.1)
-        with risk_col2:
-            entry_price = st.number_input("Entry Price ($)", value=float(metrics.get('poc', 100)), min_value=0.01, step=0.5)
-            stop_price = st.number_input("Stop Loss ($)", value=float(metrics.get('val', 98)), min_value=0.01, step=0.5)
+            # Settings
+            risk_col1, risk_col2 = st.columns(2)
+            with risk_col1:
+                acct_size = st.number_input("Account Size ($)", value=10000, min_value=100, step=1000)
+                risk_pct = st.slider("Risk Per Trade (%)", 0.1, 5.0, 1.0, 0.1)
+            with risk_col2:
+                entry_price = st.number_input("Entry Price ($)", value=float(metrics.get('poc', 100)), min_value=0.01, step=0.5)
+                stop_price = st.number_input("Stop Loss ($)", value=float(metrics.get('val', 98)), min_value=0.01, step=0.5)
 
-        rm = RiskManager(acct_size, risk_pct)
+            rm = RiskManager(acct_size, risk_pct)
 
-        if st.button("Calculate Position"):
-            pos = rm.calculate_position_size(entry_price, stop_price)
+            if st.button("Calculate Position"):
+                pos = rm.calculate_position_size(entry_price, stop_price)
 
-            if 'error' in pos:
-                st.error(pos['error'])
-            else:
-                # Position size
-                st.markdown("### Position Size")
-                p1, p2, p3, p4 = st.columns(4)
-                p1.metric("Shares", pos['shares'])
-                p2.metric("Position Value", f"${pos['position_value']:,.2f}")
-                p3.metric("Risk ($)", f"${pos['total_risk_dollars']:,.2f}")
-                p4.metric("Risk (%)", f"{pos['total_risk_pct']}%")
-
-                # Multi-target plan
-                st.markdown("### Profit Targets")
-                va_range = metrics.get('vah', entry_price) - metrics.get('val', stop_price)
-                if va_range <= 0:
-                    va_range = abs(entry_price - stop_price)
-
-                if pos['direction'] == 'LONG':
-                    targets = [
-                        round(entry_price + va_range, 2),
-                        round(entry_price + 2 * va_range, 2),
-                        round(entry_price + 3 * va_range, 2),
-                    ]
+                if 'error' in pos:
+                    st.error(pos['error'])
                 else:
-                    targets = [
-                        round(entry_price - va_range, 2),
-                        round(entry_price - 2 * va_range, 2),
-                        round(entry_price - 3 * va_range, 2),
-                    ]
+                    # Position size
+                    st.markdown("### Position Size")
+                    p1, p2, p3, p4 = st.columns(4)
+                    p1.metric("Shares", pos['shares'])
+                    p2.metric("Position Value", f"${pos['position_value']:,.2f}")
+                    p3.metric("Risk ($)", f"${pos['total_risk_dollars']:,.2f}")
+                    p4.metric("Risk (%)", f"{pos['total_risk_pct']}%")
 
-                plan = rm.multi_target_plan(entry_price, stop_price, targets)
+                    # Multi-target plan
+                    st.markdown("### Profit Targets")
+                    va_range = metrics.get('vah', entry_price) - metrics.get('val', stop_price)
+                    if va_range <= 0:
+                        va_range = abs(entry_price - stop_price)
 
-                if 'targets' in plan:
-                    for t in plan['targets']:
-                        tc1, tc2, tc3, tc4 = st.columns(4)
-                        tc1.metric(f"Target {t['target_num']}", f"${t['price']:.2f}")
-                        tc2.metric("R:R", t['rr_ratio'])
-                        tc3.metric("Reward", f"${t['reward_dollars']:,.2f}")
-                        tc4.metric("Quality", t['quality'])
+                    if pos['direction'] == 'LONG':
+                        targets = [
+                            round(entry_price + va_range, 2),
+                            round(entry_price + 2 * va_range, 2),
+                            round(entry_price + 3 * va_range, 2),
+                        ]
+                    else:
+                        targets = [
+                            round(entry_price - va_range, 2),
+                            round(entry_price - 2 * va_range, 2),
+                            round(entry_price - 3 * va_range, 2),
+                        ]
 
-                # Account heat info
-                st.markdown("### Account Utilization")
-                util_pct = pos['account_utilization_pct']
-                if util_pct <= 100:
-                    st.progress(util_pct / 100, text=f"Account usage: {util_pct:.1f}%")
-                else:
-                    st.warning(f"Position requires margin: {util_pct:.1f}% of account")
+                    plan = rm.multi_target_plan(entry_price, stop_price, targets)
 
-    # --- TAB: RESEARCH (Backtester + AI + Options) ---
+                    if 'targets' in plan:
+                        for t in plan['targets']:
+                            tc1, tc2, tc3, tc4 = st.columns(4)
+                            tc1.metric(f"Target {t['target_num']}", f"${t['price']:.2f}")
+                            tc2.metric("R:R", t['rr_ratio'])
+                            tc3.metric("Reward", f"${t['reward_dollars']:,.2f}")
+                            tc4.metric("Quality", t['quality'])
+
+                    # Account heat info
+                    st.markdown("### Account Utilization")
+                    util_pct = pos['account_utilization_pct']
+                    if util_pct <= 100:
+                        st.progress(util_pct / 100, text=f"Account usage: {util_pct:.1f}%")
+                    else:
+                        st.warning(f"Position requires margin: {util_pct:.1f}% of account")
+
+        # --- TAB: RESEARCH (Backtester + AI + Options) ---
 with tab_research:
-    research_sub = st.tabs(["Backtester", "AI Insights", "Options Flow"])
-    with research_sub[0]:
-        st.subheader("Strategy Backtester")
+    if not data_loaded:
+        st.info("Run Analysis to view Research data.")
+    else:
+        research_sub = st.tabs(["Backtester", "AI Insights", "Options Flow"])
+        with research_sub[0]:
+            st.subheader("Strategy Backtester")
     
-        col_strat, col_cap, col_btn = st.columns([2, 1, 1])
-        strategy_name = col_strat.selectbox("Select Strategy", list(STRATEGIES.keys()))
-        capital = col_cap.number_input("Initial Capital", value=10000)
+            col_strat, col_cap, col_btn = st.columns([2, 1, 1])
+            strategy_name = col_strat.selectbox("Select Strategy", list(STRATEGIES.keys()))
+            capital = col_cap.number_input("Initial Capital", value=10000)
     
-        if col_btn.button("Run Simulation"):
-            with st.spinner("Running backtest..."):
-                bt = VolumeProfileBacktester(ticker, initial_capital=capital)
-                strategy = STRATEGIES[strategy_name]
-                results = bt.run_strategy(strategy)
+            if col_btn.button("Run Simulation"):
+                with st.spinner("Running backtest..."):
+                    bt = VolumeProfileBacktester(ticker, initial_capital=capital)
+                    strategy = STRATEGIES[strategy_name]
+                    results = bt.run_strategy(strategy)
             
-                if "error" in results:
-                    st.error(results['error'])
-                else:
-                    # Metrics
-                    m1, m2, m3, m4 = st.columns(4)
-                    m1.metric("Win Rate", f"{results['win_rate']}%")
-                    m2.metric("Total Return", f"{results['total_return']}%")
-                    m3.metric("Final Capital", f"${results['final_capital']:,.2f}")
-                    m4.metric("Total Trades", results['total_trades'])
+                    if "error" in results:
+                        st.error(results['error'])
+                    else:
+                        # Metrics
+                        m1, m2, m3, m4 = st.columns(4)
+                        m1.metric("Win Rate", f"{results['win_rate']}%")
+                        m2.metric("Total Return", f"{results['total_return']}%")
+                        m3.metric("Final Capital", f"${results['final_capital']:,.2f}")
+                        m4.metric("Total Trades", results['total_trades'])
                 
-                    # Equity Curve
-                    st.line_chart(bt.equity_curve)
+                        # Equity Curve
+                        st.line_chart(bt.equity_curve)
                 
-                    # Trades Table
-                    if bt.trades:
-                        st.dataframe(pd.DataFrame(bt.trades))
+                        # Trades Table
+                        if bt.trades:
+                            st.dataframe(pd.DataFrame(bt.trades))
 
-    with research_sub[1]:
-        st.subheader("AI Agent Insights")
+        with research_sub[1]:
+            st.subheader("AI Agent Insights")
 
-        if st.button("Generate Trading Plan"):
-            with st.spinner("Agent is thinking..."):
-                plan_res = VolumeProfileAgent.get_trading_plan(ticker, period)
+            if st.button("Generate Trading Plan"):
+                with st.spinner("Agent is thinking..."):
+                    plan_res = VolumeProfileAgent.get_trading_plan(ticker, period)
 
-                if plan_res['status'] == 'success':
-                    p = plan_res['plan']
-                    st.success(f"Strategy: {p['strategy']}")
+                    if plan_res['status'] == 'success':
+                        p = plan_res['plan']
+                        st.success(f"Strategy: {p['strategy']}")
 
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        st.write("**Setup:**")
-                        st.write(f"- Bias: {p['bias']}")
-                        st.write(f"- Entry Zone: ${p['entry_zone']['min']:.2f} - ${p['entry_zone']['max']:.2f}")
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            st.write("**Setup:**")
+                            st.write(f"- Bias: {p['bias']}")
+                            st.write(f"- Entry Zone: ${p['entry_zone']['min']:.2f} - ${p['entry_zone']['max']:.2f}")
 
-                    with c2:
-                        st.write("**Risk Management:**")
-                        sl = f"${p['stop_loss']:.2f}" if p['stop_loss'] is not None else "N/A"
-                        t1 = f"${p['target_1']:.2f}" if p['target_1'] is not None else "N/A"
-                        t2 = f"${p['target_2']:.2f}" if p['target_2'] is not None else "N/A"
+                        with c2:
+                            st.write("**Risk Management:**")
+                            sl = f"${p['stop_loss']:.2f}" if p['stop_loss'] is not None else "N/A"
+                            t1 = f"${p['target_1']:.2f}" if p['target_1'] is not None else "N/A"
+                            t2 = f"${p['target_2']:.2f}" if p['target_2'] is not None else "N/A"
 
-                        st.write(f"- Stop Loss: {sl}")
-                        st.write(f"- Target 1: {t1}")
-                        st.write(f"- Target 2: {t2}")
-                else:
-                    st.error(plan_res.get('error', 'Unknown error'))
+                            st.write(f"- Stop Loss: {sl}")
+                            st.write(f"- Target 1: {t1}")
+                            st.write(f"- Target 2: {t2}")
+                    else:
+                        st.error(plan_res.get('error', 'Unknown error'))
 
 # ==================================================================
 # NEW TABS
