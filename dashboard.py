@@ -55,13 +55,28 @@ YAHOO_TICKER_MAP = {
     'DOGEUSD': 'DOGE-USD',
 }
 
+# Reverse mapping: Yahoo Finance format -> TradingView format
+# Handles cases where user types "GC=F" directly
+TV_TICKER_MAP = {
+    'GC=F': 'XAUUSD', 'SI=F': 'XAGUSD', 'CL=F': 'USOIL',
+    'NG=F': 'NGAS',
+    'NQ=F': 'NQ1!', 'ES=F': 'ES1!', 'YM=F': 'YM1!', 'RTY=F': 'RTY1!',
+    'EURUSD=X': 'EURUSD', 'GBPUSD=X': 'GBPUSD', 'USDJPY=X': 'USDJPY',
+    'AUDUSD=X': 'AUDUSD', 'USDCAD=X': 'USDCAD', 'USDCHF=X': 'USDCHF',
+    'NZDUSD=X': 'NZDUSD', 'EURJPY=X': 'EURJPY', 'GBPJPY=X': 'GBPJPY',
+    'BTC-USD': 'BTCUSD', 'ETH-USD': 'ETHUSD', 'SOL-USD': 'SOLUSD',
+    'XRP-USD': 'XRPUSD', 'DOGE-USD': 'DOGEUSD',
+}
+
 # --- Sidebar Controls ---
 st.sidebar.title("Configuration")
 raw_ticker = st.sidebar.text_input("Ticker", value="SPY").upper().strip()
 
-# Translate for Yahoo Finance; keep original for TradingView
+# Translate for Yahoo Finance
 yahoo_ticker = YAHOO_TICKER_MAP.get(raw_ticker, raw_ticker)
-tv_ticker = raw_ticker  # TradingView uses the original
+
+# Translate for TradingView (handle if user typed Yahoo format like GC=F)
+tv_ticker = TV_TICKER_MAP.get(raw_ticker, raw_ticker)
 
 # Show mapping info if translated
 if yahoo_ticker != raw_ticker:
