@@ -1,4 +1,5 @@
 import streamlit as st
+from streamlit_autorefresh import st_autorefresh
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.express as px
@@ -17,6 +18,7 @@ from scanner import VolumeProfileScanner, WATCHLISTS
 from session_analysis import SessionAnalyzer
 from risk_manager import RiskManager
 from tradingview_widget import TradingViewWidget
+from ai_report import AIReportGenerator
 
 st.set_page_config(layout="wide", page_title="Volume Profile Dashboard")
 
@@ -90,8 +92,15 @@ ticker = yahoo_ticker  # Used for data loading (yfinance)
 period = st.sidebar.selectbox("Period", ["1d", "5d", "1mo", "3mo", "6mo", "1y"], index=2)
 interval = st.sidebar.selectbox("Interval", ["1m", "5m", "15m", "1h", "1d"], index=2)
 
+# Auto-refresh toggle
+st.sidebar.markdown("---")
+auto_refresh = st.sidebar.checkbox("Live Refresh (10s)", value=False)
+if auto_refresh:
+    st_autorefresh(interval=10000, limit=None, key="live_refresh")
+    st.sidebar.caption("Data refreshes every 10 seconds")
+
 # Global Engine Instance
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=10)
 def load_data(ticker, period, interval):
     engine = VolumeProfileEngine(ticker, period, interval)
     engine.fetch_data()
@@ -252,6 +261,25 @@ with tab1:
 
     fig.update_layout(height=900, xaxis_rangeslider_visible=False, title=f"{ticker} Volume Profile Analysis")
     st.plotly_chart(fig, use_container_width=True)
+
+    # --- AI ANALYSIS REPORT ---
+    st.markdown("---")
+    st.subheader("AI Analysis Report")
+    try:
+        report_gen = AIReportGenerator(metrics, ticker)
+
+        # Try to get patterns if available
+        try:
+            from pattern_detector import ProfilePatternDetector
+            pat_det = ProfilePatternDetector(profile, df)
+            patterns = pat_det.detect_all_patterns()
+        except Exception:
+            patterns = None
+
+        report_text = report_gen.generate(patterns=patterns)
+        st.markdown(report_text)
+    except Exception as e:
+        st.warning(f"Could not generate AI report: {e}")
 
 
 # --- TAB 2: ORDER FLOW (T&S) ---
