@@ -1,5 +1,35 @@
-.env
-*.pem
-venv/
+# === SECRETS (NEVER COMMIT) ===
+alert_config.py
+
+# === Python ===
 __pycache__/
-*.tar.gz
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# === Virtual Environment ===
+venv/
+env/
+.venv/
+
+# === IDE ===
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# === OS ===
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# === Generated Files ===
+scan_results_*.csv
+*.log
+
+# === Streamlit ===
+# Keep .streamlit/config.toml but ignore secrets
+.streamlit/secrets.toml
