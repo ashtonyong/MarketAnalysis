@@ -26,6 +26,7 @@ from correlation import CorrelationAnalyzer
 from news_feed import NewsFeedAnalyzer
 from options_flow import OptionsFlowAnalyzer
 from alerts_engine import AlertsEngine, WatchlistManager
+from trade_journal import TradeJournal, TickerNotes, UserPreferences
 import numpy as np
 
 st.set_page_config(layout="wide", page_title="Volume Profile Dashboard")
@@ -181,14 +182,272 @@ if 'run' not in st.session_state:
 
 # --- tabs ---
 # Define tabs early to prevent resetting on interaction
-(tab_tv, tab1, tab2, tab5, tab6, tab7, tab8, tab3, tab4,
+(tab_my, tab_tv, tab1, tab2, tab5, tab6, tab7, tab8, tab3, tab4,
  tab_mtf, tab_corr, tab_wl, tab_news, tab_cal, tab_opt) = st.tabs([
+    "My Dashboard",
     "TradingView Chart",
     "Market Analysis", "Order Flow", "Advanced Analytics",
     "Scanner", "Sessions", "Risk Calculator",
     "Backtester", "AI Insights",
     "Multi-TF", "Correlation", "Watchlist", "News", "Calendar", "Options"
 ])
+
+# --- TAB MY: MY DASHBOARD ---
+with tab_my:
+    st.subheader("My Dashboard")
+
+    journal = TradeJournal()
+    notes_mgr = TickerNotes()
+    user_prefs = UserPreferences()
+
+    my_tabs = st.tabs(["Watchlists", "Alerts", "Trade Journal",
+                        "Ticker Notes", "Export", "Preferences"])
+
+    # ---- WATCHLIST MANAGER ----
+    with my_tabs[0]:
+        st.markdown("### Watchlist Manager")
+        wl_names_my = wl_mgr.get_names()
+
+        wl_col1, wl_col2 = st.columns([1, 2])
+        with wl_col1:
+            st.markdown("**Your Watchlists**")
+            for name in wl_names_my:
+                tickers_list = wl_mgr.get_tickers(name)
+                with st.expander(f"{name} ({len(tickers_list)})"):
+                    st.write(", ".join(tickers_list))
+                    remove_t = st.text_input(f"Remove ticker from {name}", key=f"rm_{name}")
+                    if st.button("Remove", key=f"rmbtn_{name}"):
+                        if remove_t:
+                            wl_mgr.remove_ticker(name, remove_t)
+                            st.rerun()
+                    if st.button(f"Delete '{name}'", key=f"del_{name}"):
+                        wl_mgr.delete(name)
+                        st.rerun()
+
+        with wl_col2:
+            st.markdown("**Create / Edit Watchlist**")
+            wl_new_name = st.text_input("Watchlist Name", key='my_wl_name')
+            wl_new_tickers = st.text_area("Tickers (one per line or comma-separated)",
+                                           key='my_wl_tickers', height=100)
+            if st.button("Save Watchlist", key='my_wl_save'):
+                if wl_new_name and wl_new_tickers:
+                    t_list = [t.strip() for t in wl_new_tickers.replace('\n', ',').split(',') if t.strip()]
+                    wl_mgr.create(wl_new_name, t_list)
+                    st.success(f"Saved '{wl_new_name}' with {len(t_list)} tickers")
+                    st.rerun()
+
+    # ---- ALERTS MANAGER ----
+    with my_tabs[1]:
+        st.markdown("### Alerts Manager")
+
+        al_col1, al_col2 = st.columns(2)
+        with al_col1:
+            st.markdown("**Add New Alert**")
+            al_ticker = st.text_input("Ticker", value=raw_ticker, key='my_al_tick')
+            al_type = st.selectbox("Alert Type",
+                ['PRICE_ABOVE', 'PRICE_BELOW', 'VAH_BREAK', 'VAL_BREAK', 'POC_TOUCH'],
+                key='my_al_type')
+            al_price = st.number_input("Price Level", value=0.0, step=0.01, key='my_al_price')
+            al_note = st.text_input("Note (optional)", key='my_al_note')
+            if st.button("Create Alert", key='my_al_create'):
+                if al_price > 0:
+                    alert_engine.add_alert(al_ticker, al_type,
+                        f"{al_ticker} {al_type} {al_price}", al_price, al_note)
+                    st.success(f"Alert created: {al_ticker} {al_type} at ${al_price:.2f}")
+
+        with al_col2:
+            st.markdown("**Active Alerts**")
+            active_alerts = alert_engine.get_active_alerts()
+            if active_alerts:
+                for a in active_alerts:
+                    c1, c2 = st.columns([4, 1])
+                    c1.caption(f"#{a['id']} {a['ticker']} | {a['type']} | ${a['price']:.2f} | {a.get('note', '')}")
+                    if c2.button("X", key=f"del_al_{a['id']}"):
+                        alert_engine.delete_alert(a['id'])
+                        st.rerun()
+            else:
+                st.info("No active alerts.")
+
+            st.markdown("**Triggered Alerts (History)**")
+            triggered = alert_engine.get_triggered_alerts()
+            if triggered:
+                for t in triggered:
+                    st.caption(f"#{t['id']} {t['ticker']} {t['type']} ${t['price']:.2f} — triggered {t.get('triggered_at', '')}")
+                if st.button("Clear History", key='clear_triggered'):
+                    alert_engine.clear_triggered()
+                    st.rerun()
+            else:
+                st.caption("No triggered alerts yet.")
+
+    # ---- TRADE JOURNAL ----
+    with my_tabs[2]:
+        st.markdown("### Trade Journal")
+
+        # Performance stats
+        stats = journal.get_stats()
+        if stats['total_trades'] > 0:
+            s1, s2, s3, s4, s5, s6 = st.columns(6)
+            s1.metric("Total Trades", stats['total_trades'])
+            s2.metric("Win Rate", f"{stats['win_rate']}%")
+            s3.metric("Total P&L", f"${stats['total_pnl']:,.2f}")
+            s4.metric("Avg P&L", f"${stats['avg_pnl']:,.2f}")
+            s5.metric("Profit Factor", f"{stats['profit_factor']:.2f}")
+            s6.metric("Best / Worst", f"${stats['best_trade']:,.2f} / ${stats['worst_trade']:,.2f}")
+
+            # Equity curve
+            if stats['equity_curve']:
+                eq_df = pd.DataFrame(stats['equity_curve'])
+                fig_eq = go.Figure(go.Scatter(
+                    x=eq_df['date'], y=eq_df['equity'],
+                    mode='lines+markers', line=dict(color='cyan', width=2),
+                    fill='tozeroy', fillcolor='rgba(0,255,255,0.1)'
+                ))
+                fig_eq.update_layout(
+                    height=300, template='plotly_dark',
+                    title='Equity Curve', yaxis_title='Cumulative P&L ($)',
+                    margin=dict(l=40, r=20, t=40, b=30)
+                )
+                st.plotly_chart(fig_eq, use_container_width=True)
+
+            # Trade table
+            if journal.get_all_trades():
+                st.markdown("---")
+                trades_df = pd.DataFrame(journal.get_all_trades())
+                display_cols = ['id', 'ticker', 'direction', 'entry_price', 'exit_price',
+                               'size', 'pnl', 'pnl_pct', 'result', 'strategy', 'exit_date']
+                display_cols = [c for c in display_cols if c in trades_df.columns]
+                st.dataframe(trades_df[display_cols], use_container_width=True,
+                    column_config={
+                        'entry_price': st.column_config.NumberColumn('Entry', format='$%.2f'),
+                        'exit_price': st.column_config.NumberColumn('Exit', format='$%.2f'),
+                        'pnl': st.column_config.NumberColumn('P&L', format='$%.2f'),
+                        'pnl_pct': st.column_config.NumberColumn('P&L %', format='%.2f%%'),
+                    }
+                )
+        else:
+            st.info("No trades logged yet. Add your first trade below.")
+
+        # Add trade form
+        st.markdown("---")
+        st.markdown("**Log a Trade**")
+        tc1, tc2, tc3, tc4 = st.columns(4)
+        j_ticker = tc1.text_input("Ticker", value=raw_ticker, key='j_ticker')
+        j_dir = tc2.selectbox("Direction", ['LONG', 'SHORT'], key='j_dir')
+        j_entry = tc3.number_input("Entry Price", value=0.0, step=0.01, key='j_entry')
+        j_exit = tc4.number_input("Exit Price", value=0.0, step=0.01, key='j_exit')
+
+        tc5, tc6, tc7, tc8 = st.columns(4)
+        j_size = tc5.number_input("Size (shares/contracts)", value=1.0, step=1.0, key='j_size')
+        j_strat = tc6.text_input("Strategy", key='j_strat')
+        j_edate = tc7.text_input("Entry Date (YYYY-MM-DD)", key='j_edate')
+        j_xdate = tc8.text_input("Exit Date (YYYY-MM-DD)", key='j_xdate')
+
+        j_notes = st.text_area("Trade Notes", key='j_notes', height=60)
+
+        if st.button("Log Trade", key='j_log'):
+            if j_entry > 0 and j_exit > 0:
+                journal.add_trade(j_ticker, j_dir, j_entry, j_exit, j_size,
+                                  j_edate, j_xdate, j_strat, j_notes)
+                st.success(f"Trade logged!")
+                st.rerun()
+            else:
+                st.warning("Enter valid entry and exit prices.")
+
+        if stats['total_trades'] > 0:
+            if st.button("Clear All Trades", key='j_clear'):
+                journal.clear_all()
+                st.rerun()
+
+    # ---- TICKER NOTES ----
+    with my_tabs[3]:
+        st.markdown("### Ticker Notes")
+        st.caption("Save personal analysis notes for any ticker. These persist across sessions.")
+
+        note_ticker = st.text_input("Ticker", value=raw_ticker, key='note_ticker')
+        existing_note = notes_mgr.get_note(note_ticker)
+        note_text = st.text_area("Your Notes", value=existing_note, height=200, key='note_text')
+
+        nc1, nc2 = st.columns(2)
+        if nc1.button("Save Note", key='note_save'):
+            notes_mgr.save_note(note_ticker, note_text)
+            st.success(f"Note saved for {note_ticker}")
+
+        if nc2.button("Delete Note", key='note_del'):
+            notes_mgr.delete_note(note_ticker)
+            st.success(f"Note deleted for {note_ticker}")
+            st.rerun()
+
+        # Show all notes
+        all_notes = notes_mgr.get_all()
+        if all_notes:
+            st.markdown("---")
+            st.markdown("**All Saved Notes**")
+            for tk, nt in all_notes.items():
+                with st.expander(tk):
+                    st.write(nt)
+
+    # ---- EXPORT CENTER ----
+    with my_tabs[4]:
+        st.markdown("### Export Center")
+        st.caption("Download your data as CSV files.")
+
+        ex_col1, ex_col2 = st.columns(2)
+        with ex_col1:
+            st.markdown("**Trade Journal Export**")
+            csv_data = journal.export_csv()
+            st.download_button(
+                "Download Trade Journal (CSV)",
+                csv_data,
+                file_name=f"trade_journal_{datetime.now().strftime('%Y%m%d')}.csv",
+                mime="text/csv",
+                key='exp_journal'
+            )
+
+        with ex_col2:
+            st.markdown("**VP Levels Export**")
+            if data_loaded:
+                levels_csv = f"Metric,Value\nPOC,{metrics['poc']:.2f}\nVAH,{metrics['vah']:.2f}\nVAL,{metrics['val']:.2f}\nCurrent Price,{metrics['current_price']:.2f}\nPosition,{metrics['position']}"
+                st.download_button(
+                    "Download VP Levels (CSV)",
+                    levels_csv,
+                    file_name=f"{ticker}_levels_{datetime.now().strftime('%Y%m%d')}.csv",
+                    mime="text/csv",
+                    key='exp_levels'
+                )
+            else:
+                st.caption("Run analysis first to export VP levels.")
+
+    # ---- PREFERENCES ----
+    with my_tabs[5]:
+        st.markdown("### User Preferences")
+        st.caption("Set your defaults. These are saved locally and persist across sessions.")
+
+        current_prefs = user_prefs.get_all()
+
+        pf_col1, pf_col2 = st.columns(2)
+        with pf_col1:
+            pf_ticker = st.text_input("Default Ticker", value=current_prefs.get('default_ticker', 'SPY'), key='pf_ticker')
+            pf_period = st.selectbox("Default Period", ["1d", "5d", "1mo", "3mo", "6mo", "1y"],
+                                      index=["1d", "5d", "1mo", "3mo", "6mo", "1y"].index(current_prefs.get('default_period', '1mo')),
+                                      key='pf_period')
+            pf_interval = st.selectbox("Default Interval", ["1m", "5m", "15m", "1h", "1d"],
+                                        index=["1m", "5m", "15m", "1h", "1d"].index(current_prefs.get('default_interval', '15m')),
+                                        key='pf_interval')
+
+        with pf_col2:
+            pf_refresh = st.checkbox("Auto-Refresh by Default", value=current_prefs.get('auto_refresh', False), key='pf_refresh')
+            pf_rate = st.number_input("Refresh Rate (seconds)", value=current_prefs.get('refresh_rate', 10),
+                                       min_value=5, max_value=60, key='pf_rate')
+
+        if st.button("Save Preferences", key='pf_save'):
+            user_prefs.save_all({
+                'default_ticker': pf_ticker,
+                'default_period': pf_period,
+                'default_interval': pf_interval,
+                'auto_refresh': pf_refresh,
+                'refresh_rate': pf_rate,
+            })
+            st.success("Preferences saved! They will apply on next page load.")
 
 # --- TAB TV: TRADINGVIEW PROFESSIONAL CHART ---
 with tab_tv:
