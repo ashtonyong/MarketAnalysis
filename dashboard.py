@@ -126,43 +126,16 @@ ticker = yahoo_ticker  # Used for data loading (yfinance)
 period = st.sidebar.selectbox("Period", ["1d", "5d", "1mo", "3mo", "6mo", "1y"], index=2)
 interval = st.sidebar.selectbox("Interval", ["1m", "5m", "15m", "1h", "1d"], index=2)
 
-# Auto-refresh toggle
+# Auto-refresh toggle (Market Analysis data only)
 st.sidebar.markdown("---")
 auto_refresh = st.sidebar.checkbox("Live Refresh (10s)", value=False)
 if auto_refresh:
     st_autorefresh(interval=10000, limit=None, key="live_refresh")
-    st.sidebar.caption("Data refreshes every 10 seconds")
+    st.sidebar.caption("Market Analysis data refreshes every 10 seconds")
 
-# --- Alerts Section ---
-st.sidebar.markdown("---")
+# Initialize managers (used by My Dashboard tab)
 alert_engine = AlertsEngine()
-with st.sidebar.expander("Alerts", expanded=False):
-    alert_type = st.selectbox("Type", ['PRICE_ABOVE', 'PRICE_BELOW', 'VAH_BREAK', 'VAL_BREAK'], key='alert_type')
-    alert_price = st.number_input("Price Level", value=0.0, key='alert_price')
-    alert_note = st.text_input("Note", key='alert_note')
-    if st.button("Add Alert", key='add_alert'):
-        if alert_price > 0:
-            alert_engine.add_alert(raw_ticker, alert_type, f"{raw_ticker} {alert_type} {alert_price}", alert_price, alert_note)
-            st.success("Alert added")
-    active = alert_engine.get_active_alerts()
-    if active:
-        st.caption(f"{len(active)} active alert(s)")
-        for a in active[:5]:
-            st.caption(f"{a['ticker']} {a['type']} ${a['price']:.2f}")
-
-# --- Custom Watchlists ---
 wl_mgr = WatchlistManager()
-with st.sidebar.expander("Custom Watchlists", expanded=False):
-    wl_names = wl_mgr.get_names()
-    selected_wl = st.selectbox("Watchlist", wl_names, key='wl_select') if wl_names else None
-    if selected_wl:
-        st.caption(", ".join(wl_mgr.get_tickers(selected_wl)))
-    new_wl_name = st.text_input("New Watchlist Name", key='new_wl')
-    new_wl_tickers = st.text_input("Tickers (comma-separated)", key='new_wl_t')
-    if st.button("Save Watchlist", key='save_wl'):
-        if new_wl_name and new_wl_tickers:
-            wl_mgr.create(new_wl_name, new_wl_tickers.split(','))
-            st.success(f"Saved '{new_wl_name}'")
 
 # Global Engine Instance
 @st.cache_data(ttl=10)
@@ -1368,42 +1341,33 @@ with tab_wl:
 
 # --- TAB: NEWS & SENTIMENT ---
 with tab_news:
-    st.subheader("News & Sentiment")
+    st.subheader("Live News Feed")
+    st.caption("Real-time financial news powered by TradingView. Updates automatically.")
 
-    if st.button("Load News", key='news_load'):
-        with st.spinner("Fetching news..."):
-            try:
-                nf = NewsFeedAnalyzer(ticker)
-                result = nf.get_sentiment_summary()
-
-                # Summary metrics
-                nc1, nc2, nc3, nc4 = st.columns(4)
-                nc1.metric("Overall Sentiment", result['overall_sentiment'])
-                nc2.metric("Positive", result['positive_count'])
-                nc3.metric("Negative", result['negative_count'])
-                nc4.metric("Neutral", result['neutral_count'])
-
-                # Articles
-                st.markdown("---")
-                for article in result['articles']:
-                    sent_color = (
-                        "green" if article['sentiment'] == 'Positive'
-                        else "red" if article['sentiment'] == 'Negative'
-                        else "gray"
-                    )
-                    st.markdown(
-                        f":{sent_color}[{article['sentiment']}] "
-                        f"**{article['title']}**  \n"
-                        f"*{article['publisher']} - {article['age']}*  "
-                        f"[Read]({article['link']})"
-                    )
-                    st.markdown("---")
-
-                if not result['articles']:
-                    st.info("No news articles found for this ticker.")
-
-            except Exception as e:
-                st.error(f"News Error: {e}")
+    import streamlit.components.v1 as components_news
+    news_html = f"""
+    <div style="height:700px;overflow:auto;">
+    <!-- TradingView Widget BEGIN -->
+    <div class="tradingview-widget-container">
+      <div class="tradingview-widget-container__widget"></div>
+      <script type="text/javascript"
+        src="https://s3.tradingview.com/external-embedding/embed-widget-timeline.js" async>
+        {{
+          "feedMode": "symbol",
+          "symbol": "{tv_ticker}",
+          "colorTheme": "dark",
+          "isTransparent": true,
+          "displayMode": "regular",
+          "width": "100%",
+          "height": "680",
+          "locale": "en"
+        }}
+      </script>
+    </div>
+    <!-- TradingView Widget END -->
+    </div>
+    """
+    components_news.html(news_html, height=720)
 
 # --- TAB: ECONOMIC CALENDAR ---
 with tab_cal:
