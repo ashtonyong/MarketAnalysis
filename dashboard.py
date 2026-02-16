@@ -307,71 +307,173 @@ with tab1:
         st.warning(f"Could not generate AI report: {e}")
 
 
-# --- TAB 2: ORDER FLOW (T&S) ---
+# --- TAB 2: ORDER FLOW ---
 with tab2:
-    st.subheader("Time & Sales Analysis (Volume Proxy)")
-    
-    ts_btn = st.button("Analyze Order Flow")
-    
-    if ts_btn:
-        with st.spinner("Analyzing Tick Data..."):
-            # Use 1m data for granular analysis
-            # We need POC/VAH/VAL for this
-            ts_res = VolumeProfileAgent.get_time_and_sales(ticker, metrics['poc'], metrics['vah'], metrics['val'])
-            
-            if ts_res['status'] == 'success':
-                data = ts_res['data']
-                lp = data.get('large_prints', [])
-                levels = data.get('key_levels', {})
-                
-                # Top Section: Activity at Key Levels
-                st.markdown("### Activity at Key Levels")
-                c1, c2, c3 = st.columns(3)
-                
-                # Mapping friendly names to keys
-                level_map = {'POC': 'poc', 'VAH': 'vah', 'VAL': 'val'}
-                
-                for i, (label, key) in enumerate(level_map.items()):
-                    lvl_data = levels.get(key, {})
-                    col = [c1, c2, c3][i]
-                    
-                    with col:
-                        status = lvl_data.get('status', 'NO_DATA')
-                        price = lvl_data.get('level', 0)
-                        
-                        st.markdown(f"**{label}** (${price:.2f})")
-                        
-                        if status == 'ACTIVE':
-                            bias = lvl_data.get('bias', 'NEUTRAL')
-                            b_color = "green" if bias == "BULLISH" else "red" if bias == "BEARISH" else "gray"
-                            st.markdown(f"Bias: :{b_color}[{bias}]")
-                            st.caption(lvl_data.get('interpretation', ''))
-                            
-                            # Vol Bars
-                            buy_r = lvl_data.get('buy_ratio', 0)
-                            sell_r = lvl_data.get('sell_ratio', 0)
-                            st.progress(buy_r, text=f"Buy {int(buy_r*100)}% vs Sell {int(sell_r*100)}%")
-                        else:
-                            st.caption("No significant activity detected")
-                
-                # Bottom Section: Large Prints
-                st.markdown("### Large Prints (Aggressive Tape)")
-                if lp:
-                    lp_df = pd.DataFrame(lp)
-                    # Color table based on Aggressive Side
-                    # Columns: time, price, size, aggressive, interpretation
+    st.subheader("Order Flow Analysis")
+
+    of_period = st.selectbox("Order Flow Period", ['1d', '5d', '1mo'], index=1, key='of_period')
+
+    if st.button("Analyze Order Flow"):
+        with st.spinner("Running order flow analysis..."):
+            try:
+                from order_flow import OrderFlowEngine
+
+                of_engine = OrderFlowEngine(ticker, period=of_period, interval='15m')
+                of_engine.fetch_data()
+                of_result = of_engine.analyze()
+                s = of_result.summary
+
+                # --- Summary Metrics ---
+                st.markdown("### Flow Summary")
+                sm1, sm2, sm3, sm4 = st.columns(4)
+                control_color = "green" if s['overall_control'] == 'BUYERS' else "red"
+                sm1.metric("Overall Control", s['overall_control'])
+                sm2.metric("Buy %", f"{s['buy_pct']}%")
+                sm3.metric("VWAP", f"${s['vwap']:.2f}")
+                sm4.metric("Position", s['vwap_position'])
+
+                sm5, sm6, sm7, sm8 = st.columns(4)
+                sm5.metric("Net Delta", f"{s['net_delta']:,}")
+                sm6.metric("Recent Control", s['recent_control'])
+                sm7.metric("CVD Trend", s['cvd_trend'])
+                sm8.metric("Divergence", s['divergence_type'])
+
+                # --- 1. VWAP + SD Chart ---
+                st.markdown("---")
+                st.markdown("### VWAP + Standard Deviation Bands")
+                st.caption("VWAP = institutional fair value. Price above VWAP = bullish, below = bearish. SD bands act as support/resistance.")
+
+                delta_df = of_result.delta
+                fig_vwap = go.Figure()
+                fig_vwap.add_trace(go.Candlestick(
+                    x=delta_df.index, open=delta_df['Open'], high=delta_df['High'],
+                    low=delta_df['Low'], close=delta_df['Close'], name='Price'
+                ))
+                fig_vwap.add_trace(go.Scatter(
+                    x=delta_df.index, y=delta_df['VWAP'],
+                    line=dict(color='yellow', width=2), name='VWAP'
+                ))
+                fig_vwap.add_trace(go.Scatter(
+                    x=delta_df.index, y=delta_df['VWAP_1SD_Upper'],
+                    line=dict(color='rgba(0,200,255,0.4)', width=1, dash='dash'), name='+1 SD'
+                ))
+                fig_vwap.add_trace(go.Scatter(
+                    x=delta_df.index, y=delta_df['VWAP_1SD_Lower'],
+                    line=dict(color='rgba(0,200,255,0.4)', width=1, dash='dash'), name='-1 SD',
+                    fill='tonexty', fillcolor='rgba(0,200,255,0.05)'
+                ))
+                fig_vwap.add_trace(go.Scatter(
+                    x=delta_df.index, y=delta_df['VWAP_2SD_Upper'],
+                    line=dict(color='rgba(255,100,100,0.4)', width=1, dash='dot'), name='+2 SD'
+                ))
+                fig_vwap.add_trace(go.Scatter(
+                    x=delta_df.index, y=delta_df['VWAP_2SD_Lower'],
+                    line=dict(color='rgba(255,100,100,0.4)', width=1, dash='dot'), name='-2 SD',
+                    fill='tonexty', fillcolor='rgba(255,100,100,0.03)'
+                ))
+                fig_vwap.update_layout(
+                    height=500, xaxis_rangeslider_visible=False,
+                    template='plotly_dark', title=f'{ticker} VWAP + SD Bands'
+                )
+                st.plotly_chart(fig_vwap, use_container_width=True)
+
+                # --- 2. Delta + CVD Chart ---
+                st.markdown("---")
+                st.markdown("### Delta Analysis + Cumulative Volume Delta")
+                st.caption("Delta = buy volume minus sell volume per bar. CVD = running total. Rising CVD = buyer dominance.")
+
+                fig_delta = make_subplots(
+                    rows=2, cols=1, shared_xaxes=True,
+                    row_heights=[0.5, 0.5],
+                    subplot_titles=['Bar Delta (Buy - Sell Volume)', 'Cumulative Volume Delta (CVD)']
+                )
+
+                delta_colors = ['green' if d >= 0 else 'red' for d in delta_df['Delta']]
+                fig_delta.add_trace(go.Bar(
+                    x=delta_df.index, y=delta_df['Delta'],
+                    marker_color=delta_colors, name='Delta', opacity=0.8
+                ), row=1, col=1)
+
+                fig_delta.add_trace(go.Scatter(
+                    x=delta_df.index, y=delta_df['CVD'],
+                    line=dict(color='cyan', width=2), name='CVD',
+                    fill='tozeroy', fillcolor='rgba(0,255,255,0.1)'
+                ), row=2, col=1)
+
+                fig_delta.update_layout(height=600, template='plotly_dark')
+                st.plotly_chart(fig_delta, use_container_width=True)
+
+                # --- 3. Buy/Sell by Price Level ---
+                st.markdown("---")
+                st.markdown("### Buy/Sell Volume by Price Level")
+                st.caption("Shows who controls each price level. Green = buyer control, red = seller control.")
+
+                bs_data = of_engine.get_buy_sell_by_price(25)
+                if not bs_data.empty:
+                    fig_bs = go.Figure()
+                    fig_bs.add_trace(go.Bar(
+                        y=bs_data['price'], x=bs_data['buy_volume'],
+                        orientation='h', name='Buy Volume',
+                        marker_color='rgba(0,200,100,0.7)'
+                    ))
+                    fig_bs.add_trace(go.Bar(
+                        y=bs_data['price'], x=-bs_data['sell_volume'],
+                        orientation='h', name='Sell Volume',
+                        marker_color='rgba(255,80,80,0.7)'
+                    ))
+                    fig_bs.update_layout(
+                        height=500, template='plotly_dark', barmode='overlay',
+                        title='Buy vs Sell Volume at Each Price',
+                        xaxis_title='Volume (Buy positive, Sell negative)',
+                        yaxis_title='Price'
+                    )
+                    st.plotly_chart(fig_bs, use_container_width=True)
+
+                # --- 4. Large Blocks ---
+                st.markdown("---")
+                st.markdown("### Large Block Detection (Institutional Footprint)")
+                st.caption("Bars with volume > 2x standard deviations above average. EXTREME = 3x+ SD.")
+
+                if not of_result.large_blocks.empty:
+                    lb = of_result.large_blocks.copy()
+                    lb.index = lb.index.strftime('%Y-%m-%d %H:%M') if hasattr(lb.index, 'strftime') else lb.index
                     st.dataframe(
-                        lp_df[['time', 'price', 'size', 'aggressive', 'interpretation']],
-                        use_container_width=True,
+                        lb, use_container_width=True,
                         column_config={
-                            "price": st.column_config.NumberColumn(format="$%.2f"),
-                            "size": st.column_config.NumberColumn(format="%d"),
+                            'Close': st.column_config.NumberColumn('Price', format='$%.2f'),
+                            'Volume': st.column_config.NumberColumn('Volume', format='%d'),
+                            'Vol_Multiple': st.column_config.NumberColumn('x Avg', format='%.1fx'),
+                            'Price_Impact': st.column_config.NumberColumn('Impact %', format='%.3f%%'),
+                            'Delta': st.column_config.NumberColumn('Delta', format='%d'),
                         }
                     )
                 else:
-                    st.info("No aggressive large prints detected on tape.")
-            else:
-                st.error(ts_res.get('error'))
+                    st.info("No large blocks detected in this period.")
+
+                # --- 5. Absorption Events ---
+                st.markdown("---")
+                st.markdown("### Absorption Detection")
+                st.caption("High volume + no price movement = hidden buying/selling. Strong reversal signal.")
+
+                if not of_result.absorption.empty:
+                    ab = of_result.absorption.copy()
+                    ab.index = ab.index.strftime('%Y-%m-%d %H:%M') if hasattr(ab.index, 'strftime') else ab.index
+                    st.dataframe(
+                        ab, use_container_width=True,
+                        column_config={
+                            'Close': st.column_config.NumberColumn('Price', format='$%.2f'),
+                            'Volume': st.column_config.NumberColumn('Volume', format='%d'),
+                            'Vol_Multiple': st.column_config.NumberColumn('x Avg', format='%.1fx'),
+                            'Range': st.column_config.NumberColumn('Range', format='$%.4f'),
+                            'Range_Ratio': st.column_config.NumberColumn('Range Ratio', format='%.2fx'),
+                            'Delta': st.column_config.NumberColumn('Delta', format='%d'),
+                        }
+                    )
+                else:
+                    st.info("No absorption events detected in this period.")
+
+            except Exception as e:
+                st.error(f"Order Flow Error: {e}")
 
 # --- TAB 5: ADVANCED ANALYTICS (Phase 8) ---
 with tab5:
