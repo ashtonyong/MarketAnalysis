@@ -16,6 +16,7 @@ from profile_stats import ProfileStatistics
 from scanner import VolumeProfileScanner, WATCHLISTS
 from session_analysis import SessionAnalyzer
 from risk_manager import RiskManager
+from tradingview_widget import TradingViewWidget
 
 st.set_page_config(layout="wide", page_title="Volume Profile Dashboard")
 
@@ -42,11 +43,43 @@ if 'run' not in st.session_state:
 
 # --- tabs ---
 # Define tabs early to prevent resetting on interaction
-tab1, tab2, tab5, tab6, tab7, tab8, tab3, tab4 = st.tabs([
+tab_tv, tab1, tab2, tab5, tab6, tab7, tab8, tab3, tab4 = st.tabs([
+    "📈 TradingView Chart",
     "Market Analysis", "Order Flow (T&S)", "Advanced Analytics",
     "📡 Scanner", "🕐 Sessions", "⚖️ Risk Calculator",
     "Backtester", "AI Insights"
 ])
+
+# --- TAB TV: TRADINGVIEW PROFESSIONAL CHART ---
+with tab_tv:
+    st.subheader(f"📈 Professional Chart — {ticker}")
+
+    tv_col1, tv_col2 = st.columns([3, 1])
+    with tv_col2:
+        tv_interval = st.selectbox(
+            "Chart Timeframe",
+            options=['1m', '5m', '15m', '30m', '1h', '4h', '1d', '1w'],
+            index=2,
+            key='tv_timeframe'
+        )
+        tv_vp = st.checkbox("Show Volume Profile", value=True, key='tv_vp')
+
+    with tv_col1:
+        st.caption(
+            "Drawing tools, indicators (RSI, MACD, etc.), and symbol search are "
+            "built into the chart. Click the tools on the left sidebar of the chart."
+        )
+
+    TradingViewWidget.render_chart(
+        symbol=ticker,
+        interval=tv_interval,
+        height=650,
+        theme='dark',
+        show_volume_profile=tv_vp,
+        allow_symbol_change=True
+    )
+
+    st.caption("Powered by TradingView — Free widget, no API key required")
 
 try:
     with st.spinner(f"Analyzing {ticker}..."):
