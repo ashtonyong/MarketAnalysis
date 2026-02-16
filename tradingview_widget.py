@@ -39,35 +39,36 @@ class TradingViewWidget:
         studies_str = "[" + ",".join(studies) + "]"
 
         html = f"""
-<div class="tradingview-widget-container" style="height:100%;width:100%">
-  <div class="tradingview-widget-container__widget" style="height:calc(100% - 32px);width:100%"></div>
-  <script type="text/javascript"
-    src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
-  {{
-    "autosize": true,
-    "symbol": "{symbol}",
-    "interval": "{tv_interval}",
-    "timezone": "America/New_York",
-    "theme": "{theme}",
-    "style": "1",
-    "locale": "en",
-    "backgroundColor": "rgba(19, 23, 34, 1)",
-    "gridColor": "rgba(42, 46, 57, 0.06)",
-    "enable_publishing": false,
-    "allow_symbol_change": {str(allow_symbol_change).lower()},
-    "details": true,
-    "hotlist": true,
-    "calendar": false,
-    "studies": {studies_str},
-    "show_popup_button": true,
-    "popup_width": "1000",
-    "popup_height": "650",
-    "support_host": "https://www.tradingview.com"
-  }}
+<div class="tradingview-widget-container" style="height:{height}px;width:100%">
+  <div id="tradingview_chart" style="height:{height}px;width:100%"></div>
+  <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+  <script type="text/javascript">
+    new TradingView.widget({{
+      "width": "100%",
+      "height": {height},
+      "symbol": "{symbol}",
+      "interval": "{tv_interval}",
+      "timezone": "America/New_York",
+      "theme": "{theme}",
+      "style": "1",
+      "locale": "en",
+      "toolbar_bg": "#131722",
+      "enable_publishing": false,
+      "allow_symbol_change": {str(allow_symbol_change).lower()},
+      "details": false,
+      "hotlist": false,
+      "calendar": false,
+      "studies": {studies_str},
+      "hide_side_toolbar": false,
+      "show_popup_button": true,
+      "popup_width": "1000",
+      "popup_height": "650",
+      "container_id": "tradingview_chart"
+    }});
   </script>
 </div>
 """
-        components.html(html, height=height)
+        components.html(html, height=height + 5)
 
     @classmethod
     def render_symbol_info(cls, symbol: str):

@@ -52,34 +52,27 @@ tab_tv, tab1, tab2, tab5, tab6, tab7, tab8, tab3, tab4 = st.tabs([
 
 # --- TAB TV: TRADINGVIEW PROFESSIONAL CHART ---
 with tab_tv:
-    st.subheader(f"📈 Professional Chart — {ticker}")
-
-    tv_col1, tv_col2 = st.columns([3, 1])
+    tv_col1, tv_col2, tv_col3 = st.columns([2, 1, 1])
+    with tv_col1:
+        st.caption("Use drawing tools & indicators from the chart toolbar. Click symbol name to search.")
     with tv_col2:
         tv_interval = st.selectbox(
-            "Chart Timeframe",
+            "Timeframe",
             options=['1m', '5m', '15m', '30m', '1h', '4h', '1d', '1w'],
             index=2,
             key='tv_timeframe'
         )
-        tv_vp = st.checkbox("Show Volume Profile", value=True, key='tv_vp')
-
-    with tv_col1:
-        st.caption(
-            "Drawing tools, indicators (RSI, MACD, etc.), and symbol search are "
-            "built into the chart. Click the tools on the left sidebar of the chart."
-        )
+    with tv_col3:
+        tv_vp = st.checkbox("Volume Profile", value=True, key='tv_vp')
 
     TradingViewWidget.render_chart(
         symbol=ticker,
         interval=tv_interval,
-        height=650,
+        height=800,
         theme='dark',
         show_volume_profile=tv_vp,
         allow_symbol_change=True
     )
-
-    st.caption("Powered by TradingView — Free widget, no API key required")
 
 try:
     with st.spinner(f"Analyzing {ticker}..."):
