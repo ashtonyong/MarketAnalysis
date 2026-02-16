@@ -4,6 +4,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.express as px
 import pandas as pd
+from datetime import datetime
 from volume_profile_engine import VolumeProfileEngine
 from volume_profile_backtester import VolumeProfileBacktester, STRATEGIES
 from ai_agent_interface import VolumeProfileAgent
@@ -278,6 +279,15 @@ with tab1:
 
         report_text = report_gen.generate(patterns=patterns)
         st.markdown(report_text)
+
+        # Download button
+        download_text = report_gen.generate_downloadable(patterns=patterns)
+        st.download_button(
+            "Download Report (.txt)",
+            download_text,
+            file_name=f"{ticker}_analysis_{datetime.now().strftime('%Y%m%d_%H%M')}.txt",
+            mime="text/plain"
+        )
     except Exception as e:
         st.warning(f"Could not generate AI report: {e}")
 
