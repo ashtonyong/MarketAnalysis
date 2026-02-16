@@ -1341,33 +1341,41 @@ with tab_wl:
 
 # --- TAB: NEWS & SENTIMENT ---
 with tab_news:
-    st.subheader("Live News Feed")
-    st.caption("Real-time financial news powered by TradingView. Updates automatically.")
+    st.subheader("News & Sentiment")
+    st.caption("Live news from Google News (Reuters, Bloomberg, CNBC, etc.) with sentiment scoring.")
 
-    import streamlit.components.v1 as components_news
-    news_html = f"""
-    <div style="height:700px;overflow:auto;">
-    <!-- TradingView Widget BEGIN -->
-    <div class="tradingview-widget-container">
-      <div class="tradingview-widget-container__widget"></div>
-      <script type="text/javascript"
-        src="https://s3.tradingview.com/external-embedding/embed-widget-timeline.js" async>
-        {{
-          "feedMode": "symbol",
-          "symbol": "{tv_ticker}",
-          "colorTheme": "dark",
-          "isTransparent": true,
-          "displayMode": "regular",
-          "width": "100%",
-          "height": "680",
-          "locale": "en"
-        }}
-      </script>
-    </div>
-    <!-- TradingView Widget END -->
-    </div>
-    """
-    components_news.html(news_html, height=720)
+    if st.button("Load News", key='news_load'):
+        with st.spinner("Fetching news..."):
+            try:
+                nf = NewsFeedAnalyzer(ticker)
+                result = nf.get_sentiment_summary()
+
+                # Summary metrics
+                nc1, nc2, nc3, nc4, nc5 = st.columns(5)
+                nc1.metric("Overall Sentiment", result['overall_sentiment'])
+                nc2.metric("Score", f"{result['avg_score']:+.2f}")
+                nc3.metric("Positive", result['positive_count'])
+                nc4.metric("Negative", result['negative_count'])
+                nc5.metric("Neutral", result['neutral_count'])
+
+                # Articles
+                st.markdown("---")
+                for article in result['articles']:
+                    sent = article['sentiment']
+                    sent_emoji = "🟢" if sent == 'Positive' else "🔴" if sent == 'Negative' else "⚪"
+                    st.markdown(
+                        f"{sent_emoji} **{article['title']}**  \n"
+                        f"*{article['publisher']}* · {article['age']}  "
+                        f"[Read →]({article['link']})"
+                    )
+                    st.markdown("---")
+
+                if not result['articles']:
+                    st.info("No news articles found. Try a different ticker.")
+
+            except Exception as e:
+                st.error(f"News Error: {e}")
+
 
 # --- TAB: ECONOMIC CALENDAR ---
 with tab_cal:

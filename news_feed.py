@@ -1,13 +1,15 @@
 """
 News Feed & Sentiment Analyzer
-Fetches news from yfinance and scores sentiment using keyword analysis.
-100% FREE - no API keys needed.
+Fetches news from Google News RSS feed (100% FREE, no API key).
+Scores sentiment using keyword analysis.
 """
 
-import yfinance as yf
-from typing import List, Dict
-from datetime import datetime
+import requests
+import xml.etree.ElementTree as ET
 import re
+from typing import List, Dict
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 
 
 # Sentiment word lists
@@ -17,6 +19,7 @@ POSITIVE_WORDS = {
     'beat', 'beats', 'strong', 'growth', 'profit', 'profits', 'record',
     'high', 'boost', 'boosts', 'positive', 'optimism', 'outperform',
     'buy', 'breakout', 'momentum', 'recovery', 'upward', 'advance',
+    'higher', 'top', 'best', 'up', 'climbs', 'above', 'exceeded',
 }
 
 NEGATIVE_WORDS = {
@@ -25,45 +28,93 @@ NEGATIVE_WORDS = {
     'miss', 'misses', 'weak', 'recession', 'risk', 'risks', 'fear', 'fears',
     'sell', 'selloff', 'warning', 'concern', 'concerns', 'slump', 'tumble',
     'negative', 'cut', 'cuts', 'layoff', 'layoffs', 'bankruptcy', 'default',
+    'lower', 'worst', 'down', 'below', 'plummets', 'sinks', 'collapses',
+}
+
+# Map tickers to search-friendly names for better Google News results
+TICKER_NAMES = {
+    'SPY': 'SPY S&P 500 ETF',
+    'QQQ': 'QQQ Nasdaq ETF',
+    'AAPL': 'Apple AAPL stock',
+    'MSFT': 'Microsoft MSFT stock',
+    'GOOGL': 'Google GOOGL stock',
+    'AMZN': 'Amazon AMZN stock',
+    'NVDA': 'Nvidia NVDA stock',
+    'TSLA': 'Tesla TSLA stock',
+    'META': 'Meta META stock',
+    'GC=F': 'gold price',
+    'SI=F': 'silver price',
+    'CL=F': 'crude oil price',
+    'BTC-USD': 'Bitcoin BTC crypto',
+    'ETH-USD': 'Ethereum ETH crypto',
+    'ES=F': 'S&P 500 futures',
+    'NQ=F': 'Nasdaq futures',
+    'EURUSD=X': 'EUR USD forex',
+    'DX-Y.NYB': 'US Dollar index DXY',
+    'TLT': 'Treasury bonds TLT',
 }
 
 
 class NewsFeedAnalyzer:
-    """Fetch and analyze news sentiment for a ticker."""
+    """Fetch and analyze news sentiment using Google News RSS."""
+
+    GOOGLE_NEWS_RSS = "https://news.google.com/rss/search?q={query}&hl=en-US&gl=US&ceid=US:en"
 
     def __init__(self, ticker: str):
         self.ticker = ticker
+        self.search_query = TICKER_NAMES.get(ticker, f"{ticker} stock")
 
-    def get_news(self, max_items: int = 20) -> List[Dict]:
-        """Fetch news from yfinance."""
+    def get_news(self, max_items: int = 15) -> List[Dict]:
+        """Fetch news from Google News RSS."""
+        url = self.GOOGLE_NEWS_RSS.format(query=requests.utils.quote(self.search_query))
+
         try:
-            stock = yf.Ticker(self.ticker)
-            raw_news = stock.news or []
-        except Exception:
+            resp = requests.get(url, timeout=10, headers={
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            })
+            resp.raise_for_status()
+        except Exception as e:
+            return []
+
+        try:
+            root = ET.fromstring(resp.content)
+        except ET.ParseError:
             return []
 
         articles = []
-        for item in raw_news[:max_items]:
-            title = item.get('title', '')
-            publisher = item.get('publisher', 'Unknown')
-            link = item.get('link', '')
-            pub_time = item.get('providerPublishTime', 0)
+        items = root.findall('.//item')
 
-            # Format timestamp
+        for item in items[:max_items]:
+            title = item.findtext('title', '')
+            link = item.findtext('link', '')
+            pub_date = item.findtext('pubDate', '')
+            source = item.findtext('source', '')
+
+            # Parse date
+            time_str = ''
+            age = ''
             try:
-                dt = datetime.fromtimestamp(pub_time)
+                dt = parsedate_to_datetime(pub_date)
                 time_str = dt.strftime('%Y-%m-%d %H:%M')
                 age = self._time_ago(dt)
             except Exception:
-                time_str = 'Unknown'
+                time_str = pub_date
                 age = ''
+
+            # Extract publisher from title (Google News format: "Title - Publisher")
+            publisher = source
+            if not publisher and ' - ' in title:
+                parts = title.rsplit(' - ', 1)
+                if len(parts) == 2:
+                    title = parts[0].strip()
+                    publisher = parts[1].strip()
 
             # Score sentiment
             sentiment, score = self._score_sentiment(title)
 
             articles.append({
                 'title': title,
-                'publisher': publisher,
+                'publisher': publisher or 'Unknown',
                 'link': link,
                 'time': time_str,
                 'age': age,
@@ -131,10 +182,11 @@ class NewsFeedAnalyzer:
 
     def _time_ago(self, dt: datetime) -> str:
         """Convert datetime to 'X ago' string."""
-        diff = datetime.now() - dt
+        now = datetime.now(timezone.utc) if dt.tzinfo else datetime.now()
+        diff = now - dt
         hours = diff.total_seconds() / 3600
         if hours < 1:
-            return f"{int(diff.total_seconds() / 60)}m ago"
+            return f"{max(1, int(diff.total_seconds() / 60))}m ago"
         elif hours < 24:
             return f"{int(hours)}h ago"
         else:
@@ -148,5 +200,8 @@ if __name__ == "__main__":
     result = nf.get_sentiment_summary()
     print(f"Overall: {result['overall_sentiment']} (score: {result['avg_score']})")
     print(f"Positive: {result['positive_count']} | Negative: {result['negative_count']} | Neutral: {result['neutral_count']}")
-    for a in result['articles'][:5]:
-        print(f"  [{a['sentiment']}] {a['title']}")
+    print()
+    for a in result['articles'][:10]:
+        print(f"  [{a['sentiment']:>8}] {a['title']}")
+        print(f"            {a['publisher']} - {a['age']}")
+        print()
