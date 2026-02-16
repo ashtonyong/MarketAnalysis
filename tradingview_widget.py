@@ -35,7 +35,7 @@ class TradingViewWidget:
 
         studies = ['"Volume@tv-basicstudies"']
         if show_volume_profile:
-            studies.append('"VolumeProfile@tv-volumebyprice"')
+            studies.append('"VbPVisible@tv-volumebyprice"')
         studies_str = "[" + ",".join(studies) + "]"
 
         html = f"""
