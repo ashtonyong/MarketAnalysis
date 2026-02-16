@@ -20,14 +20,78 @@ from tradingview_widget import TradingViewWidget
 
 st.set_page_config(layout="wide", page_title="Volume Profile Dashboard")
 
+# --- Ticker symbol mapping ---
+# TradingView accepts symbols like XAUUSD, but Yahoo Finance uses different formats.
+# This mapping converts common TradingView symbols to Yahoo Finance equivalents.
+YAHOO_TICKER_MAP = {
+    # Commodities
+    'XAUUSD': 'GC=F',   'GOLD': 'GC=F',
+    'XAGUSD': 'SI=F',   'SILVER': 'SI=F',
+    'CRUDEOIL': 'CL=F', 'OIL': 'CL=F',   'USOIL': 'CL=F',
+    'NGAS': 'NG=F',     'NATGAS': 'NG=F',
+    # Futures
+    'NQ': 'NQ=F',       'NQ1!': 'NQ=F',
+    'ES': 'ES=F',       'ES1!': 'ES=F',
+    'YM': 'YM=F',       'YM1!': 'YM=F',
+    'RTY': 'RTY=F',     'RTY1!': 'RTY=F',
+    # Forex
+    'EURUSD': 'EURUSD=X',
+    'GBPUSD': 'GBPUSD=X',
+    'USDJPY': 'USDJPY=X',
+    'AUDUSD': 'AUDUSD=X',
+    'USDCAD': 'USDCAD=X',
+    'USDCHF': 'USDCHF=X',
+    'NZDUSD': 'NZDUSD=X',
+    'EURJPY': 'EURJPY=X',
+    'GBPJPY': 'GBPJPY=X',
+    # Crypto
+    'BTCUSD': 'BTC-USD',  'BITCOIN': 'BTC-USD',
+    'ETHUSD': 'ETH-USD',  'ETHEREUM': 'ETH-USD',
+    'SOLUSD': 'SOL-USD',
+    'XRPUSD': 'XRP-USD',
+    'DOGEUSD': 'DOGE-USD',
+}
+
 # --- Sidebar Controls ---
 st.sidebar.title("Configuration")
-ticker = st.sidebar.text_input("Ticker", value="SPY").upper()
+raw_ticker = st.sidebar.text_input("Ticker", value="SPY").upper().strip()
+
+# Translate for Yahoo Finance; keep original for TradingView
+yahoo_ticker = YAHOO_TICKER_MAP.get(raw_ticker, raw_ticker)
+tv_ticker = raw_ticker  # TradingView uses the original
+
+# Show mapping info if translated
+if yahoo_ticker != raw_ticker:
+    st.sidebar.caption(f"Yahoo Finance: {yahoo_ticker}")
+
+# Quick select buttons
+st.sidebar.caption("Quick Select:")
+qr1, qr2, qr3, qr4 = st.sidebar.columns(4)
+for btn_label, col in [("SPY", qr1), ("QQQ", qr2), ("AAPL", qr3), ("TSLA", qr4)]:
+    if col.button(btn_label, key=f"q_{btn_label}", use_container_width=True):
+        st.session_state['quick_ticker'] = btn_label
+        st.rerun()
+
+qr5, qr6, qr7, qr8 = st.sidebar.columns(4)
+for btn_label, col in [("Gold", qr5), ("NQ", qr6), ("ES", qr7), ("BTC", qr8)]:
+    map_to = {'Gold': 'XAUUSD', 'NQ': 'NQ', 'ES': 'ES', 'BTC': 'BTCUSD'}
+    if col.button(btn_label, key=f"q_{btn_label}", use_container_width=True):
+        st.session_state['quick_ticker'] = map_to[btn_label]
+        st.rerun()
+
+# Handle quick select
+if 'quick_ticker' in st.session_state:
+    raw_ticker = st.session_state.pop('quick_ticker').upper()
+    yahoo_ticker = YAHOO_TICKER_MAP.get(raw_ticker, raw_ticker)
+    tv_ticker = raw_ticker
+
+ticker = yahoo_ticker  # Used for data loading (yfinance)
+
 period = st.sidebar.selectbox("Period", ["1d", "5d", "1mo", "3mo", "6mo", "1y"], index=2)
 interval = st.sidebar.selectbox("Interval", ["1m", "5m", "15m", "1h", "1d"], index=2)
 
 # Global Engine Instance
-@st.cache_data(ttl=60) # Cache data for 1 minute
+@st.cache_data(ttl=60)
 def load_data(ticker, period, interval):
     engine = VolumeProfileEngine(ticker, period, interval)
     engine.fetch_data()
@@ -40,6 +104,7 @@ if st.sidebar.button("Run Analysis"):
 if 'run' not in st.session_state:
     st.info("Enter a ticker and click 'Run Analysis' to start.")
     st.stop()
+
 
 # --- tabs ---
 # Define tabs early to prevent resetting on interaction
@@ -64,7 +129,7 @@ with tab_tv:
         )
 
     TradingViewWidget.render_chart(
-        symbol=ticker,
+        symbol=tv_ticker,
         interval=tv_interval,
         height=800,
         theme='dark',
@@ -75,9 +140,12 @@ with tab_tv:
 try:
     with st.spinner(f"Analyzing {ticker}..."):
         engine = load_data(ticker, period, interval)
+        if engine.data is None or engine.data.empty:
+            raise ValueError(f"No data returned for '{ticker}'. Check the ticker symbol.")
         metrics = engine.get_all_metrics()
         df = engine.data
         profile = engine.volume_profile
+        data_loaded = True
         
         # Phase 5: Advanced Analytics
         daily_profiles = engine.get_daily_profiles(days=5)
@@ -94,11 +162,17 @@ try:
         vol_std = df['Volume'].std()
         
 except Exception as e:
-    st.error(f"Error: {e}")
-    st.stop()
+    st.warning(f"Data loading failed for '{ticker}': {e}. TradingView chart still works. Other tabs need valid Yahoo Finance data.")
+    data_loaded = False
 
 # --- tabs ---
 # Tabs defined above
+
+# Guard: if data loading failed, only TradingView tab works
+if not data_loaded:
+    with tab1:
+        st.info("Data not available for this ticker. The TradingView chart still works.")
+    st.stop()
 
 # --- TAB 1: MARKET ANALYSIS ---
 with tab1:
