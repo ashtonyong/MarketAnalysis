@@ -985,6 +985,151 @@ with tab_analytics:
                 except Exception as e:
                     st.error(f"Stats Error: {e}")
 
+
+        with analytics_sub[1]:
+            st.subheader("Multi-Timeframe Volume Profile")
+            st.caption("Find confluent POC/VAH/VAL levels across timeframes. Aligned levels are strong S/R.")
+
+            mtf_tfs = st.multiselect("Timeframes", ['15m', '1h', '4h', '1d', '1w'],
+                                      default=['15m', '1h', '1d'], key='mtf_tfs')
+            if st.button("Run Multi-TF Analysis", key='mtf_run'):
+                with st.spinner("Analyzing across timeframes..."):
+                    try:
+                        mtf = MultiTimeframeAnalyzer(ticker, mtf_tfs)
+                        mtf_result = mtf.analyze()
+
+                        # Show each timeframe's levels
+                        st.markdown("### Levels by Timeframe")
+                        cols = st.columns(len(mtf_tfs))
+                        for i, tf in enumerate(mtf_tfs):
+                            with cols[i]:
+                                data = mtf_result['timeframes'].get(tf, {})
+                                label = data.get('label', tf)
+                                st.markdown(f"**{label}**")
+                                if 'error' not in data:
+                                    st.metric("POC", f"${data['poc']:.2f}")
+                                    st.metric("VAH", f"${data['vah']:.2f}")
+                                    st.metric("VAL", f"${data['val']:.2f}")
+                                else:
+                                    st.warning(data['error'])
+
+                        # Confluence levels
+                        confluences = mtf_result['confluences']
+                        if confluences:
+                            st.markdown("---")
+                            st.markdown("### Confluence Levels (Strongest S/R)")
+                            for c in confluences:
+                                strength_bar = "+" * c['strength']
+                                st.markdown(f"**${c['price']:.2f}** [{strength_bar}] -- {c['description']}")
+
+                        # Strongest levels table
+                        strongest = mtf_result['strongest_levels']
+                        if strongest:
+                            st.markdown("---")
+                            st.markdown("### Ranked Levels")
+                            st.dataframe(pd.DataFrame(strongest), use_container_width=True)
+
+                    except Exception as e:
+                        st.error(f"MTF Error: {e}")
+
+        with analytics_sub[2]:
+            st.subheader("Correlation Heatmap")
+            st.caption("Find correlated and inversely correlated assets. Useful for hedging and divergence trading.")
+
+            corr_preset = st.selectbox("Preset", list(CorrelationAnalyzer.DEFAULT_PAIRS.keys()) + ['Custom'],
+                                        key='corr_preset')
+            if corr_preset == 'Custom':
+                corr_tickers_str = st.text_input("Tickers (comma-separated)", "SPY,QQQ,GC=F,TLT", key='corr_custom')
+                corr_tickers = [t.strip() for t in corr_tickers_str.split(',')]
+            else:
+                corr_tickers = CorrelationAnalyzer.DEFAULT_PAIRS[corr_preset]
+
+            corr_period = st.selectbox("Period", ['1mo', '3mo', '6mo', '1y'], index=1, key='corr_period')
+
+            if st.button("Compute Correlation", key='corr_run'):
+                with st.spinner("Computing correlations..."):
+                    try:
+                        ca = CorrelationAnalyzer(corr_tickers, period=corr_period)
+                        summary = ca.get_summary()
+                        corr_matrix = summary['correlation_matrix']
+
+                        # Heatmap
+                        fig_corr = go.Figure(data=go.Heatmap(
+                            z=corr_matrix.values,
+                            x=corr_matrix.columns.tolist(),
+                            y=corr_matrix.index.tolist(),
+                            colorscale='RdBu_r',
+                            zmid=0, zmin=-1, zmax=1,
+                            text=corr_matrix.values.round(2),
+                            texttemplate='%{text}',
+                            textfont={"size": 14},
+                        ))
+                        fig_corr.update_layout(
+                            height=500, template='plotly_dark',
+                            title='Correlation Matrix (Daily Returns)'
+                        )
+                        st.plotly_chart(fig_corr, use_container_width=True)
+
+                        # Summary
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            st.markdown("**Strongest Positive Correlations**")
+                            for p in summary['strongest_positive'][:5]:
+                                st.caption(f"{p['pair']}: {p['correlation']:.3f}")
+                        with c2:
+                            st.markdown("**Strongest Negative Correlations**")
+                            for p in summary['strongest_negative'][:5]:
+                                st.caption(f"{p['pair']}: {p['correlation']:.3f}")
+
+                    except Exception as e:
+                        st.error(f"Correlation Error: {e}")
+
+        with analytics_sub[3]:
+            st.subheader("Watchlist Dashboard")
+
+            wl_names = wl_mgr.get_names()
+            wl_choice = st.selectbox("Select Watchlist", wl_names, key='wl_dash_select') if wl_names else None
+
+            if wl_choice and st.button("Load Watchlist", key='wl_load'):
+                wl_tickers = wl_mgr.get_tickers(wl_choice)
+                with st.spinner(f"Loading {len(wl_tickers)} tickers..."):
+                    cols = st.columns(min(4, len(wl_tickers)))
+                    for i, wt in enumerate(wl_tickers):
+                        col = cols[i % 4]
+                        with col:
+                            try:
+                                wt_data = yf.download(wt, period='5d', interval='1d',
+                                                      progress=False, auto_adjust=True)
+                                if wt_data is not None and not wt_data.empty:
+                                    if isinstance(wt_data.columns, pd.MultiIndex):
+                                        wt_data.columns = wt_data.columns.get_level_values(0)
+                                    price = float(wt_data['Close'].iloc[-1])
+                                    prev = float(wt_data['Close'].iloc[-2]) if len(wt_data) > 1 else price
+                                    change_pct = (price - prev) / prev * 100
+
+                                    st.metric(
+                                        wt, f"${price:.2f}",
+                                        delta=f"{change_pct:+.2f}%"
+                                    )
+
+                                    # Mini sparkline
+                                    fig_mini = go.Figure(go.Scatter(
+                                        y=wt_data['Close'].tolist(), mode='lines',
+                                        line=dict(color='cyan' if change_pct >= 0 else 'red', width=1.5)
+                                    ))
+                                    fig_mini.update_layout(
+                                        height=80, margin=dict(l=0, r=0, t=0, b=0),
+                                        xaxis=dict(visible=False), yaxis=dict(visible=False),
+                                        template='plotly_dark', plot_bgcolor='rgba(0,0,0,0)',
+                                        paper_bgcolor='rgba(0,0,0,0)'
+                                    )
+                                    st.plotly_chart(fig_mini, use_container_width=True)
+                                else:
+                                    st.caption(f"{wt}: No data")
+                            except Exception:
+                                st.caption(f"{wt}: Error")
+
+        # --- TAB: NEWS (News + Calendar) ---
 # --- TAB: TOOLS (Scanner + Sessions + Risk) ---
 with tab_tools:
     if not data_loaded:
@@ -1239,154 +1384,69 @@ with tab_research:
                     else:
                         st.error(plan_res.get('error', 'Unknown error'))
 
-# ==================================================================
-# NEW TABS
-# ==================================================================
+        with research_sub[2]:
+            st.subheader("Options Flow Analysis")
 
-    with analytics_sub[1]:
-        st.subheader("Multi-Timeframe Volume Profile")
-        st.caption("Find confluent POC/VAH/VAL levels across timeframes. Aligned levels are strong S/R.")
+            if st.button("Load Options", key='opt_load'):
+                with st.spinner("Loading options chain..."):
+                    try:
+                        ofa = OptionsFlowAnalyzer(ticker)
+                        expirations = ofa.get_expirations()
 
-        mtf_tfs = st.multiselect("Timeframes", ['15m', '1h', '4h', '1d', '1w'],
-                                  default=['15m', '1h', '1d'], key='mtf_tfs')
-        if st.button("Run Multi-TF Analysis", key='mtf_run'):
-            with st.spinner("Analyzing across timeframes..."):
-                try:
-                    mtf = MultiTimeframeAnalyzer(ticker, mtf_tfs)
-                    mtf_result = mtf.analyze()
+                        if not expirations:
+                            st.warning("No options data available for this ticker.")
+                        else:
+                            exp_choice = st.selectbox("Expiration", expirations, key='opt_exp')
+                            opt_result = ofa.analyze(exp_choice)
 
-                    # Show each timeframe's levels
-                    st.markdown("### Levels by Timeframe")
-                    cols = st.columns(len(mtf_tfs))
-                    for i, tf in enumerate(mtf_tfs):
-                        with cols[i]:
-                            data = mtf_result['timeframes'].get(tf, {})
-                            label = data.get('label', tf)
-                            st.markdown(f"**{label}**")
-                            if 'error' not in data:
-                                st.metric("POC", f"${data['poc']:.2f}")
-                                st.metric("VAH", f"${data['vah']:.2f}")
-                                st.metric("VAL", f"${data['val']:.2f}")
+                            if 'error' in opt_result:
+                                st.error(opt_result['error'])
                             else:
-                                st.warning(data['error'])
+                                oc1, oc2, oc3, oc4 = st.columns(4)
+                                oc1.metric("Put/Call Ratio", f"{opt_result['pc_ratio']:.2f}")
+                                oc2.metric("Max Pain", f"${opt_result['max_pain']:.2f}")
+                                oc3.metric("Sentiment", opt_result['sentiment'])
+                                oc4.metric("Current Price", f"${opt_result['current_price']:.2f}")
 
-                    # Confluence levels
-                    confluences = mtf_result['confluences']
-                    if confluences:
-                        st.markdown("---")
-                        st.markdown("### Confluence Levels (Strongest S/R)")
-                        for c in confluences:
-                            strength_bar = "+" * c['strength']
-                            st.markdown(f"**${c['price']:.2f}** [{strength_bar}] -- {c['description']}")
+                                oc5, oc6, oc7, oc8 = st.columns(4)
+                                oc5.metric("Call Volume", f"{opt_result['call_volume']:,}")
+                                oc6.metric("Put Volume", f"{opt_result['put_volume']:,}")
+                                oc7.metric("Call IV", f"{opt_result['call_iv']}%")
+                                oc8.metric("Put IV", f"{opt_result['put_iv']}%")
 
-                    # Strongest levels table
-                    strongest = mtf_result['strongest_levels']
-                    if strongest:
-                        st.markdown("---")
-                        st.markdown("### Ranked Levels")
-                        st.dataframe(pd.DataFrame(strongest), use_container_width=True)
+                                st.markdown("---")
+                                st.markdown("### Open Interest by Strike")
+                                calls = opt_result['calls']
+                                puts = opt_result['puts']
 
-                except Exception as e:
-                    st.error(f"MTF Error: {e}")
+                                fig_oi = go.Figure()
+                                if not calls.empty and 'openInterest' in calls.columns:
+                                    fig_oi.add_trace(go.Bar(
+                                        x=calls['strike'], y=calls['openInterest'],
+                                        name='Call OI', marker_color='rgba(0,200,100,0.7)'
+                                    ))
+                                if not puts.empty and 'openInterest' in puts.columns:
+                                    fig_oi.add_trace(go.Bar(
+                                        x=puts['strike'], y=puts['openInterest'],
+                                        name='Put OI', marker_color='rgba(255,80,80,0.7)'
+                                    ))
+                                fig_oi.add_vline(x=opt_result['max_pain'], line_dash="dash", line_color="yellow", annotation_text="Max Pain")
+                                fig_oi.add_vline(x=opt_result['current_price'], line_dash="solid", line_color="white", annotation_text="Price")
+                                fig_oi.update_layout(height=400, template='plotly_dark', barmode='group', title='Open Interest Distribution')
+                                st.plotly_chart(fig_oi, use_container_width=True)
 
-    with analytics_sub[2]:
-        st.subheader("Correlation Heatmap")
-        st.caption("Find correlated and inversely correlated assets. Useful for hedging and divergence trading.")
+                                unusual = opt_result['unusual_activity']
+                                if not unusual.empty:
+                                    st.markdown("---")
+                                    st.markdown("### Unusual Options Activity")
+                                    st.caption("Options with volume significantly above average.")
+                                    st.dataframe(unusual, use_container_width=True)
+                                else:
+                                    st.info("No unusual options activity detected.")
 
-        corr_preset = st.selectbox("Preset", list(CorrelationAnalyzer.DEFAULT_PAIRS.keys()) + ['Custom'],
-                                    key='corr_preset')
-        if corr_preset == 'Custom':
-            corr_tickers_str = st.text_input("Tickers (comma-separated)", "SPY,QQQ,GC=F,TLT", key='corr_custom')
-            corr_tickers = [t.strip() for t in corr_tickers_str.split(',')]
-        else:
-            corr_tickers = CorrelationAnalyzer.DEFAULT_PAIRS[corr_preset]
+                    except Exception as e:
+                        st.error(f"Options Error: {e}")
 
-        corr_period = st.selectbox("Period", ['1mo', '3mo', '6mo', '1y'], index=1, key='corr_period')
-
-        if st.button("Compute Correlation", key='corr_run'):
-            with st.spinner("Computing correlations..."):
-                try:
-                    ca = CorrelationAnalyzer(corr_tickers, period=corr_period)
-                    summary = ca.get_summary()
-                    corr_matrix = summary['correlation_matrix']
-
-                    # Heatmap
-                    fig_corr = go.Figure(data=go.Heatmap(
-                        z=corr_matrix.values,
-                        x=corr_matrix.columns.tolist(),
-                        y=corr_matrix.index.tolist(),
-                        colorscale='RdBu_r',
-                        zmid=0, zmin=-1, zmax=1,
-                        text=corr_matrix.values.round(2),
-                        texttemplate='%{text}',
-                        textfont={"size": 14},
-                    ))
-                    fig_corr.update_layout(
-                        height=500, template='plotly_dark',
-                        title='Correlation Matrix (Daily Returns)'
-                    )
-                    st.plotly_chart(fig_corr, use_container_width=True)
-
-                    # Summary
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        st.markdown("**Strongest Positive Correlations**")
-                        for p in summary['strongest_positive'][:5]:
-                            st.caption(f"{p['pair']}: {p['correlation']:.3f}")
-                    with c2:
-                        st.markdown("**Strongest Negative Correlations**")
-                        for p in summary['strongest_negative'][:5]:
-                            st.caption(f"{p['pair']}: {p['correlation']:.3f}")
-
-                except Exception as e:
-                    st.error(f"Correlation Error: {e}")
-
-    with analytics_sub[3]:
-        st.subheader("Watchlist Dashboard")
-
-        wl_names = wl_mgr.get_names()
-        wl_choice = st.selectbox("Select Watchlist", wl_names, key='wl_dash_select') if wl_names else None
-
-        if wl_choice and st.button("Load Watchlist", key='wl_load'):
-            wl_tickers = wl_mgr.get_tickers(wl_choice)
-            with st.spinner(f"Loading {len(wl_tickers)} tickers..."):
-                cols = st.columns(min(4, len(wl_tickers)))
-                for i, wt in enumerate(wl_tickers):
-                    col = cols[i % 4]
-                    with col:
-                        try:
-                            wt_data = yf.download(wt, period='5d', interval='1d',
-                                                  progress=False, auto_adjust=True)
-                            if wt_data is not None and not wt_data.empty:
-                                if isinstance(wt_data.columns, pd.MultiIndex):
-                                    wt_data.columns = wt_data.columns.get_level_values(0)
-                                price = float(wt_data['Close'].iloc[-1])
-                                prev = float(wt_data['Close'].iloc[-2]) if len(wt_data) > 1 else price
-                                change_pct = (price - prev) / prev * 100
-
-                                st.metric(
-                                    wt, f"${price:.2f}",
-                                    delta=f"{change_pct:+.2f}%"
-                                )
-
-                                # Mini sparkline
-                                fig_mini = go.Figure(go.Scatter(
-                                    y=wt_data['Close'].tolist(), mode='lines',
-                                    line=dict(color='cyan' if change_pct >= 0 else 'red', width=1.5)
-                                ))
-                                fig_mini.update_layout(
-                                    height=80, margin=dict(l=0, r=0, t=0, b=0),
-                                    xaxis=dict(visible=False), yaxis=dict(visible=False),
-                                    template='plotly_dark', plot_bgcolor='rgba(0,0,0,0)',
-                                    paper_bgcolor='rgba(0,0,0,0)'
-                                )
-                                st.plotly_chart(fig_mini, use_container_width=True)
-                            else:
-                                st.caption(f"{wt}: No data")
-                        except Exception:
-                            st.caption(f"{wt}: Error")
-
-    # --- TAB: NEWS (News + Calendar) ---
 with tab_news:
     news_sub = st.tabs(["News Feed", "Economic Calendar"])
     with news_sub[0]:
@@ -1454,87 +1514,3 @@ with tab_news:
         """
         components_cal.html(cal_html, height=620)
 
-    with research_sub[2]:
-        st.subheader("Options Flow Analysis")
-
-        if st.button("Load Options", key='opt_load'):
-            with st.spinner("Loading options chain..."):
-                try:
-                    ofa = OptionsFlowAnalyzer(ticker)
-                    expirations = ofa.get_expirations()
-
-                    if not expirations:
-                        st.warning("No options data available for this ticker.")
-                    else:
-                        exp_choice = st.selectbox("Expiration", expirations, key='opt_exp')
-                        opt_result = ofa.analyze(exp_choice)
-
-                        if 'error' in opt_result:
-                            st.error(opt_result['error'])
-                        else:
-                            # Metrics
-                            oc1, oc2, oc3, oc4 = st.columns(4)
-                            oc1.metric("Put/Call Ratio", f"{opt_result['pc_ratio']:.2f}")
-                            oc2.metric("Max Pain", f"${opt_result['max_pain']:.2f}")
-                            oc3.metric("Sentiment", opt_result['sentiment'])
-                            oc4.metric("Current Price", f"${opt_result['current_price']:.2f}")
-
-                            oc5, oc6, oc7, oc8 = st.columns(4)
-                            oc5.metric("Call Volume", f"{opt_result['call_volume']:,}")
-                            oc6.metric("Put Volume", f"{opt_result['put_volume']:,}")
-                            oc7.metric("Call IV", f"{opt_result['call_iv']}%")
-                            oc8.metric("Put IV", f"{opt_result['put_iv']}%")
-
-                            # Visual: OI by strike
-                            st.markdown("---")
-                            st.markdown("### Open Interest by Strike")
-                            calls = opt_result['calls']
-                            puts = opt_result['puts']
-
-                            fig_oi = go.Figure()
-                            if not calls.empty and 'openInterest' in calls.columns:
-                                fig_oi.add_trace(go.Bar(
-                                    x=calls['strike'], y=calls['openInterest'],
-                                    name='Call OI', marker_color='rgba(0,200,100,0.7)'
-                                ))
-                            if not puts.empty and 'openInterest' in puts.columns:
-                                fig_oi.add_trace(go.Bar(
-                                    x=puts['strike'], y=puts['openInterest'],
-                                    name='Put OI', marker_color='rgba(255,80,80,0.7)'
-                                ))
-                            # Max pain line
-                            fig_oi.add_vline(
-                                x=opt_result['max_pain'],
-                                line_dash="dash", line_color="yellow",
-                                annotation_text="Max Pain"
-                            )
-                            # Current price line
-                            fig_oi.add_vline(
-                                x=opt_result['current_price'],
-                                line_dash="solid", line_color="white",
-                                annotation_text="Price"
-                            )
-                            fig_oi.update_layout(
-                                height=400, template='plotly_dark',
-                                barmode='group', title='Open Interest Distribution'
-                            )
-                            st.plotly_chart(fig_oi, use_container_width=True)
-
-                            # Unusual Activity
-                            unusual = opt_result['unusual_activity']
-                            if not unusual.empty:
-                                st.markdown("---")
-                                st.markdown("### Unusual Options Activity")
-                                st.caption("Options with volume significantly above average. Could indicate institutional positioning.")
-                                st.dataframe(unusual, use_container_width=True,
-                                    column_config={
-                                        'strike': st.column_config.NumberColumn('Strike', format='$%.2f'),
-                                        'lastPrice': st.column_config.NumberColumn('Last', format='$%.2f'),
-                                        'impliedVolatility': st.column_config.NumberColumn('IV', format='%.1f%%'),
-                                    }
-                                )
-                            else:
-                                st.info("No unusual options activity detected.")
-
-                except Exception as e:
-                    st.error(f"Options Error: {e}")
