@@ -405,16 +405,19 @@ with tab_my:
 
         with ex_col2:
             st.markdown("**VP Levels Export**")
-            if data_loaded:
-                levels_csv = f"Metric,Value\nPOC,{metrics['poc']:.2f}\nVAH,{metrics['vah']:.2f}\nVAL,{metrics['val']:.2f}\nCurrent Price,{metrics['current_price']:.2f}\nPosition,{metrics['position']}"
-                st.download_button(
-                    "Download VP Levels (CSV)",
-                    levels_csv,
-                    file_name=f"{ticker}_levels_{datetime.now().strftime('%Y%m%d')}.csv",
-                    mime="text/csv",
-                    key='exp_levels'
-                )
-            else:
+            try:
+                if data_loaded and metrics:
+                    levels_csv = f"Metric,Value\nPOC,{metrics['poc']:.2f}\nVAH,{metrics['vah']:.2f}\nVAL,{metrics['val']:.2f}\nCurrent Price,{metrics['current_price']:.2f}\nPosition,{metrics['position']}"
+                    st.download_button(
+                        "Download VP Levels (CSV)",
+                        levels_csv,
+                        file_name=f"{ticker}_levels_{datetime.now().strftime('%Y%m%d')}.csv",
+                        mime="text/csv",
+                        key='exp_levels'
+                    )
+                else:
+                    st.caption("Run analysis first to export VP levels.")
+            except NameError:
                 st.caption("Run analysis first to export VP levels.")
 
     # ---- PREFERENCES ----
