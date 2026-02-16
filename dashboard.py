@@ -37,18 +37,23 @@ st.markdown("""
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
     html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
-    .main .block-container { padding: 1rem 1.5rem; max-width: 100%; }
+    .main .block-container { padding: 1.2rem 2rem; max-width: 100%; }
 
     /* Sidebar */
     [data-testid="stSidebar"] { background: #0d1117; border-right: 1px solid #21262d; }
     [data-testid="stSidebar"][aria-expanded="true"] { min-width: 260px; max-width: 260px; }
-    [data-testid="stSidebar"][aria-expanded="false"] { min-width: 0; max-width: 0; margin-left: -260px; }
+    [data-testid="stSidebar"][aria-expanded="false"] { min-width: 0px; max-width: 0px; }
+    section[data-testid="stSidebar"] > div { padding-top: 1rem; }
 
     /* Tab bar */
-    .stTabs [data-baseweb="tab-list"] { gap: 0; border-bottom: 1px solid #21262d; background: transparent; }
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 0; border-bottom: 1px solid #21262d;
+        background: transparent; overflow-x: auto;
+    }
     .stTabs [data-baseweb="tab"] {
         padding: 10px 18px; font-size: 13px; font-weight: 500;
         color: #7d8590; border-bottom: 2px solid transparent;
+        white-space: nowrap;
     }
     .stTabs [data-baseweb="tab"]:hover { color: #e6edf3; }
     .stTabs [aria-selected="true"] {
@@ -76,12 +81,16 @@ st.markdown("""
     /* Headers */
     h1, h2, h3 { font-weight: 600 !important; }
     h2 { font-size: 18px !important; }
+    h3 { font-size: 15px !important; color: #c9d1d9 !important; }
 
     /* Dividers */
     hr { border-color: #21262d !important; }
 
     /* Download buttons */
     .stDownloadButton > button { background: transparent !important; border: 1px solid #30363d !important; }
+
+    /* Expanders */
+    .streamlit-expanderHeader { font-size: 13px !important; }
 
     /* Responsive */
     @media (max-width: 768px) {
@@ -207,9 +216,8 @@ if st.sidebar.button("Run Analysis"):
     "Analytics", "Tools", "News", "Research"
 ])
 
-# --- TAB MY: MY DASHBOARD ---
+# --- TAB: HOME ---
 with tab_my:
-    st.subheader("My Dashboard")
 
     journal = TradeJournal()
     notes_mgr = TickerNotes()
