@@ -44,9 +44,9 @@ if 'run' not in st.session_state:
 # --- tabs ---
 # Define tabs early to prevent resetting on interaction
 tab_tv, tab1, tab2, tab5, tab6, tab7, tab8, tab3, tab4 = st.tabs([
-    "📈 TradingView Chart",
+    "TradingView Chart",
     "Market Analysis", "Order Flow (T&S)", "Advanced Analytics",
-    "📡 Scanner", "🕐 Sessions", "⚖️ Risk Calculator",
+    "Scanner", "Sessions", "Risk Calculator",
     "Backtester", "AI Insights"
 ])
 
@@ -333,7 +333,7 @@ with tab5:
                     conf = comp_builder.compare_composites([5, 10, 20])
                     if conf['confluence']:
                         for c in conf['confluence']:
-                            st.success(f"🎯 Confluence Zone at ${c['price']:.2f} (Matches: {c['timeframes']})")
+                            st.success(f"Confluence Zone at ${c['price']:.2f} (Matches: {c['timeframes']})")
                     else:
                         st.info("No strong confluence detected across timeframes.")
             except Exception as e:
@@ -366,7 +366,7 @@ with tab5:
                 st.markdown("#### Breakout Zones (LVN Gaps)")
                 if breakouts:
                     for bo in breakouts:
-                        st.warning(f"⚡ **Breakout Zone**: ${bo['support']:.2f} - ${bo['resistance']:.2f}")
+                        st.warning(f"**Breakout Zone**: ${bo['support']:.2f} - ${bo['resistance']:.2f}")
                         st.caption(f"Width: ${bo['width']:.2f}")
                 else:
                     st.info("No clear breakout zones")
@@ -387,18 +387,18 @@ with tab5:
             pat_det = ProfilePatternDetector(stats_engine.volume_profile, stats_engine.data)
             patterns = pat_det.detect_all_patterns()
             
-            st.markdown("#### 🔍 Detected Patterns")
+            st.markdown("#### Detected Patterns")
             # Poor High/Low
             p_cols = st.columns(2)
             if patterns['poor_highs_lows']['poor_high']['detected']:
-                p_cols[0].error(f"⚠️ Poor High at ${patterns['poor_highs_lows']['poor_high']['price']:.2f}")
+                p_cols[0].error(f"Poor High at ${patterns['poor_highs_lows']['poor_high']['price']:.2f}")
             else:
-                p_cols[0].success("✅ Clean High")
+                p_cols[0].success("Clean High")
                 
             if patterns['poor_highs_lows']['poor_low']['detected']:
-                p_cols[1].error(f"⚠️ Poor Low at ${patterns['poor_highs_lows']['poor_low']['price']:.2f}")
+                p_cols[1].error(f"Poor Low at ${patterns['poor_highs_lows']['poor_low']['price']:.2f}")
             else:
-                p_cols[1].success("✅ Clean Low")
+                p_cols[1].success("Clean Low")
                 
             # Excess
             if patterns['excess']:
@@ -413,7 +413,7 @@ with tab5:
             st.markdown("---")
             
             # Statistics
-            st.markdown("#### 📊 Deep Statistics")
+            st.markdown("#### Deep Statistics")
             prof_stats = ProfileStatistics(
                 stats_engine.volume_profile, stats_engine.data, 
                 stats_metrics['poc'], stats_metrics['vah'], stats_metrics['val']
@@ -432,7 +432,7 @@ with tab5:
 
 # --- TAB 6: MULTI-ASSET SCANNER ---
 with tab6:
-    st.subheader("📡 Multi-Asset Scanner")
+    st.subheader("Multi-Asset Scanner")
 
     scan_col1, scan_col2 = st.columns([2, 1])
     with scan_col1:
@@ -447,7 +447,7 @@ with tab6:
             placeholder="AAPL, MSFT, TSLA"
         )
 
-    if st.button("🔍 Run Scanner"):
+    if st.button("Run Scanner"):
         tickers_to_scan = (
             [t.strip().upper() for t in custom_tickers.split(',') if t.strip()]
             if custom_tickers
@@ -490,16 +490,16 @@ with tab6:
 
                 # Export
                 csv = scan_df.to_csv(index=False)
-                st.download_button("📥 Export CSV", csv, "scan_results.csv", "text/csv")
+                st.download_button("Export CSV", csv, "scan_results.csv", "text/csv")
 
             if scanner.errors:
-                with st.expander(f"⚠️ {len(scanner.errors)} errors"):
+                with st.expander(f"{len(scanner.errors)} errors"):
                     for err in scanner.errors:
                         st.caption(f"{err['ticker']}: {err['error']}")
 
 # --- TAB 7: SESSION ANALYSIS ---
 with tab7:
-    st.subheader("🕐 Session Analysis (Asia / London / NY)")
+    st.subheader("Session Analysis (Asia / London / NY)")
 
     if st.button("Analyze Sessions"):
         with st.spinner(f"Analyzing sessions for {ticker}..."):
@@ -511,7 +511,7 @@ with tab7:
                 # Session cards
                 sc1, sc2, sc3 = st.columns(3)
                 session_cols = {'Asia': sc1, 'London': sc2, 'NY': sc3}
-                session_colors = {'Asia': '🌏', 'London': '🇬🇧', 'NY': '🇺🇸'}
+                session_colors = {'Asia': 'ASIA', 'London': 'LDN', 'NY': 'US'}
 
                 for name, col in session_cols.items():
                     data = sessions.get(name, {})
@@ -552,7 +552,7 @@ with tab7:
 
 # --- TAB 8: RISK CALCULATOR ---
 with tab8:
-    st.subheader("⚖️ Risk Calculator")
+    st.subheader("Risk Calculator")
 
     # Settings
     risk_col1, risk_col2 = st.columns(2)
@@ -614,7 +614,7 @@ with tab8:
             if util_pct <= 100:
                 st.progress(util_pct / 100, text=f"Account usage: {util_pct:.1f}%")
             else:
-                st.warning(f"⚠️ Position requires margin: {util_pct:.1f}% of account")
+                st.warning(f"Position requires margin: {util_pct:.1f}% of account")
 
 # --- TAB 3: BACKTESTER ---
 with tab3:
