@@ -29,6 +29,9 @@ from news_feed import NewsFeedAnalyzer
 from options_flow import OptionsFlowAnalyzer
 from alerts_engine import AlertsEngine, WatchlistManager
 from trade_journal import TradeJournal, TickerNotes, UserPreferences
+from backtester import BacktestEngine
+from quant_engine import MonteCarloSimulator, RegimeDetector, ZScoreCalculator, CorrelationAnalyzer
+from strategies import BaseStrategy
 import numpy as np
 
 st.set_page_config(layout="wide", page_title="Volume Profile Terminal")
@@ -1666,34 +1669,135 @@ with tab_research:
     else:
         research_sub = st.tabs(["Backtester", "AI Insights", "Options Flow"])
         with research_sub[0]:
-            st.subheader("Strategy Backtester")
-    
-            col_strat, col_cap, col_btn = st.columns([2, 1, 1])
-            strategy_name = col_strat.selectbox("Select Strategy", list(STRATEGIES.keys()))
-            capital = col_cap.number_input("Initial Capital", value=10000)
-    
-            if col_btn.button("Run Simulation"):
-                with st.spinner("Running backtest..."):
-                    bt = VolumeProfileBacktester(ticker, initial_capital=capital)
-                    strategy = STRATEGIES[strategy_name]
-                    results = bt.run_strategy(strategy)
+            st.subheader("Professional Quant Engine")
             
-                    if "error" in results:
-                        st.error(results['error'])
+            # --- Input Section ---
+            col_strat, col_cap, col_risk = st.columns([2, 1, 1])
+            
+            # Initialize Engine
+            bt_engine = BacktestEngine()
+            
+            strategies = list(bt_engine.strategies.keys())
+            selected_strat = col_strat.selectbox("Select Strategy", strategies, key='qt_strat')
+            capital = col_cap.number_input("Initial Capital ($)", value=10000, step=1000, key='qt_cap')
+            risk_pct = col_risk.slider("Risk per Trade (%)", 0.5, 5.0, 1.0, 0.1, key='qt_risk') / 100
+            
+            col_btn1, col_btn2 = st.columns([1, 1])
+            run_btn = col_btn1.button("▶ Run Strategy", key='qt_run', use_container_width=True)
+            comp_btn = col_btn2.button("⚡ Compare All 5", key='qt_comp', use_container_width=True)
+            
+            # --- Run Logic ---
+            if run_btn:
+                with st.spinner(f"Backtesting {selected_strat} on {ticker}..."):
+                    res = bt_engine.run_backtest(ticker, selected_strat, period, interval, capital, risk_pct)
+                    
+                    if "error" in res:
+                        st.error(res['error'])
                     else:
-                        # Metrics
-                        m1, m2, m3, m4 = st.columns(4)
-                        m1.metric("Win Rate", f"{results['win_rate']}%")
-                        m2.metric("Total Return", f"{results['total_return']}%")
-                        m3.metric("Final Capital", f"${results['final_capital']:,.2f}")
-                        m4.metric("Total Trades", results['total_trades'])
+                        st.session_state['bt_result'] = res
+                        st.session_state['bt_mode'] = 'single'
+                        
+            if comp_btn:
+                with st.spinner(f"Running 5-Strategy Battle on {ticker}..."):
+                    comp_res = bt_engine.compare_all_strategies(ticker, period, interval, capital)
+                    st.session_state['bt_result'] = comp_res
+                    st.session_state['bt_mode'] = 'multi'
+            
+            # --- Display Logic ---
+            if 'bt_result' in st.session_state:
+                res = st.session_state['bt_result']
+                mode = st.session_state.get('bt_mode', 'single')
                 
+                st.markdown("---")
+                
+                if mode == 'multi':
+                    st.markdown("### Strategy Comparison Ranking")
+                    st.dataframe(res, use_container_width=True, hide_index=True)
+                    
+                    # Winner Highlight
+                    if not res.empty:
+                        winner = res.iloc[0]
+                        st.success(f"🏆 Winner: **{winner['Strategy']}** with {winner['Return']}")
+                    
+                elif mode == 'single':
+                    # Single Strategy Dashboard
+                    metrics = res['metrics']
+                    
+                    # Top Row Stats
+                    m1, m2, m3, m4, m5 = st.columns(5)
+                    m1.metric("Total Return", metrics['Total Return'])
+                    m2.metric("Win Rate", metrics['Win Rate'])
+                    m3.metric("Profit Factor", metrics['Profit Factor'])
+                    m4.metric("Ending Equity", metrics['Ending Equity'])
+                    m5.metric("Edge Verdict", res['edge'])
+                    
+                    # Tabs
+                    bt_tabs = st.tabs(["📈 Equity Curve", "🎲 Monte Carlo", "📊 Edge & Kelly", "🌊 Regime", "📋 Trade Log"])
+                    
+                    with bt_tabs[0]:
                         # Equity Curve
-                        st.line_chart(bt.equity_curve)
-                
-                        # Trades Table
-                        if bt.trades:
-                            st.dataframe(pd.DataFrame(bt.trades))
+                        eq_df = pd.DataFrame(res['equity_curve'])
+                        if not eq_df.empty:
+                            st.line_chart(eq_df.set_index("Date")['Equity'], height=400)
+                        else:
+                            st.info("No equity curve generated.")
+                        
+                    with bt_tabs[1]:
+                        # Monte Carlo
+                        mc = res['monte_carlo']
+                        if mc:
+                            c1, c2, c3 = st.columns(3)
+                            c1.metric("Median Outcome", f"${mc['median']:,.2f}")
+                            c2.metric("Best Case (95%)", f"${mc['best_case']:,.2f}")
+                            c3.metric("Worst Case (5%)", f"${mc['worst_case']:,.2f}")
+                            
+                            st.caption(f"Based on {len(mc['simulations'])} simulations")
+                            
+                            # Simple distribution chart
+                            sims = mc['simulations']
+                            hist_data = pd.DataFrame(sims, columns=['Equity'])
+                            st.bar_chart(hist_data['Equity'].value_counts(bins=50).sort_index())
+                        else:
+                            st.info("Not enough trades for Monte Carlo.")
+                            
+                    with bt_tabs[2]:
+                        # Edge & Kelly
+                        k1, k2 = st.columns(2)
+                        with k1:
+                            st.markdown("### Kelly Criterion")
+                            st.metric("Optimal Size", f"{res['kelly']*100:.1f}%")
+                            st.caption("Suggested position size as % of capital")
+                        with k2:
+                            st.markdown("### Statistical Edge")
+                            st.metric("Expectancy", res['edge'])
+                            
+                    with bt_tabs[3]:
+                        # Regime
+                        st.markdown(f"### Market Regime: **{res['regime']}**")
+                        st.markdown(f"Current Z-Score: **{res['z_score']:.2f}**")
+                        
+                    with bt_tabs[4]:
+                        # Log
+                        st.dataframe(res['trades'], use_container_width=True)
+            
+            # --- Standalone Tools ---
+            st.markdown("---")
+            st.subheader("Standalone Quant Tools")
+            
+            qt_tabs = st.tabs(["Correlation Matrix", "Z-Score Calculator"])
+            
+            with qt_tabs[0]:
+                 # Already have correlation logic in Analytics tab, can reference or duplicate distinct logic
+                 # Using the new engine class for simplicity
+                 st.write("Cross-Asset Correlation Analysis")
+                 tickers_in = st.text_input("Tickers (comma-sep)", "SPY,QQQ,IWM,GLD,TLT", key="qt_corr_tik")
+                 if st.button("Calculate Matrix", key="qt_calc_corr"):
+                     st.info("Correlation Engine Ready (See Analytics tab for detailed heatmap)")
+                     
+            with qt_tabs[1]:
+                if not df.empty:
+                    st.metric("Current Z-Score", f"{ZScoreCalculator().calculate(df['Close']):.2f}")
+
 
         with research_sub[1]:
             st.subheader("AI Agent Insights")
