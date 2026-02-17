@@ -443,6 +443,10 @@ with tab_my:
                     except:
                         # Fallback to standard info (slower but more robust?)
                         info = ticker_obj.info
+                        if info is None:
+                            errors.append(f"{t}: No info available")
+                            continue
+                            
                         mcap = info.get('marketCap')
                         if mcap is None: mcap = info.get('totalAssets')
                         price = info.get('currentPrice') or info.get('regularMarketPrice')
