@@ -126,11 +126,12 @@ YAHOO_TICKER_MAP = {
     'EURJPY': 'EURJPY=X',
     'GBPJPY': 'GBPJPY=X',
     # Crypto
-    'BTCUSD': 'BTC-USD',  'BITCOIN': 'BTC-USD',
-    'ETHUSD': 'ETH-USD',  'ETHEREUM': 'ETH-USD',
-    'SOLUSD': 'SOL-USD',
-    'XRPUSD': 'XRP-USD',
-    'DOGEUSD': 'DOGE-USD',
+    'BTCUSD': 'BTC-USD',  'BITCOIN': 'BTC-USD', 'BTC': 'BTC-USD',
+    'ETHUSD': 'ETH-USD',  'ETHEREUM': 'ETH-USD', 'ETH': 'ETH-USD',
+    'SOLUSD': 'SOL-USD',  'SOL': 'SOL-USD',
+    'XRPUSD': 'XRP-USD',  'XRP': 'XRP-USD',
+    'DOGEUSD': 'DOGE-USD', 'DOGE': 'DOGE-USD',
+    'LTCUSD': 'LTC-USD',  'LTC': 'LTC-USD',
 }
 
 # Reverse mapping: Yahoo Finance format -> TradingView format
@@ -143,7 +144,7 @@ TV_TICKER_MAP = {
     'AUDUSD=X': 'AUDUSD', 'USDCAD=X': 'USDCAD', 'USDCHF=X': 'USDCHF',
     'NZDUSD=X': 'NZDUSD', 'EURJPY=X': 'EURJPY', 'GBPJPY=X': 'GBPJPY',
     'BTC-USD': 'BTCUSD', 'ETH-USD': 'ETHUSD', 'SOL-USD': 'SOLUSD',
-    'XRP-USD': 'XRPUSD', 'DOGE-USD': 'DOGEUSD',
+    'XRP-USD': 'XRPUSD', 'DOGE-USD': 'DOGEUSD', 'LTC-USD': 'LTCUSD',
 }
 
 # --- Sidebar Branding & Navigation ---
@@ -158,7 +159,7 @@ st.sidebar.subheader("Market Selection")
 
 # Use st.selectbox with a text_input fallback for better UX
 popular_tickers = ["SPY", "QQQ", "IWM", "AAPL", "TSLA", "NVDA", "AMD", "MSFT", "GOOGL", "AMZN", 
-                   "BTC-USD", "ETH-USD", "GC=F", "CL=F", "EURUSD=X", "USDJPY=X"]
+                   "BTCUSD", "ETHUSD", "XAUUSD", "CL=F", "EURUSD", "USDJPY"]
 
 # Session Persistence for Ticker
 if 'current_ticker' not in st.session_state:
@@ -211,7 +212,7 @@ with st.sidebar.expander("Quick Select", expanded=False):
 
     st.markdown("**Macro / Crypto**")
     macro_cols = st.columns(3)
-    for btn, lbl, col in [("GC=F", "GOLD", macro_cols[0]), ("BTC-USD", "BTC", macro_cols[1]), ("ETH-USD", "ETH", macro_cols[2])]:
+    for btn, lbl, col in [("XAUUSD", "GOLD", macro_cols[0]), ("BTCUSD", "BTC", macro_cols[1]), ("ETHUSD", "ETH", macro_cols[2])]:
         if col.button(lbl, key=f"q_{lbl}", use_container_width=True):
             st.session_state['current_ticker'] = btn
             st.session_state['ticker_select'] = btn if btn in popular_tickers else "Custom"
