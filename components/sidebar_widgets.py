@@ -131,25 +131,22 @@ class SidebarWidgets:
         st.sidebar.markdown("---")
 
     @staticmethod
-    def render_calendar():
+    def render_events_nav():
         st.sidebar.markdown("### Economic Events")
-        # TradingView Events Widget
-        html = """
-        <!-- TradingView Widget BEGIN -->
-        <div class="tradingview-widget-container">
-          <div class="tradingview-widget-container__widget"></div>
-          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
-          {
-          "colorTheme": "dark",
-          "isTransparent": true,
-          "width": "100%",
-          "height": "400",
-          "locale": "en",
-          "importanceFilter": "0,1",
-          "countryFilter": "us"
-        }
-          </script>
-        </div>
-        <!-- TradingView Widget END -->
-        """
-        components.html(html, height=400)
+        
+        # Navigation link with arrow
+        # We'll use a button with an arrow emoji and a callback to switch to Home tab
+        # or just a stylized link.
+        
+        if st.sidebar.button("View Detailed Calendar ➔", use_container_width=True):
+            # JS hack to switch to the Home tab (index 0)
+            st.components.v1.html("""
+                <script>
+                const tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
+                if (tabs.length > 0) {
+                    tabs[0].click();
+                }
+                </script>
+            """, height=0)
+            
+        st.sidebar.caption("Click to view full schedule in Home tab.")

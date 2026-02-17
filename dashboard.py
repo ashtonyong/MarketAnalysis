@@ -7,6 +7,7 @@ import plotly.express as px
 import pandas as pd
 from datetime import datetime, timedelta
 from components.sidebar_widgets import SidebarWidgets
+from components.events_widgets import EventsWidgets
 from volume_profile_engine import VolumeProfileEngine
 from volume_profile_backtester import VolumeProfileBacktester, STRATEGIES
 from ai_agent_interface import VolumeProfileAgent
@@ -296,7 +297,7 @@ st.sidebar.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-SidebarWidgets.render_calendar()
+SidebarWidgets.render_events_nav()
 
 
 
@@ -360,6 +361,12 @@ with tab_my:
 
     # ---- OVERVIEW (Command Center) ----
     with my_tabs[0]:
+        # Top Events Widgets (Phase 9)
+        EventsWidgets.render_detailed_calendar()
+        EventsWidgets.render_market_overview_events()
+        
+        st.markdown("---")
+        
         # Summary Cards Row
         active_alerts = alert_engine.get_active_alerts()
         triggered_alerts = alert_engine.get_triggered_alerts()
