@@ -1,64 +1,63 @@
+# test_quant_features.py
 
-import pandas as pd
-import numpy as np
-from strategies import ValueAreaReversionStrategy
-from quant_engine import MonteCarloSimulator, KellyCriterion, RegimeDetector, ZScoreCalculator
-from backtester import BacktestEngine
+def test_all():
+    from volume_profile_engine import VolumeProfileEngine
+    from strategies import ValueAreaReversionStrategy
+    from quant_engine import (MonteCarloSimulator, ZScoreCalculator,
+                               RegimeDetector, KellyCriterion)
+    from backtester import BacktestEngine
 
-def test_strategies():
-    print("1. Testing Strategies...")
-    try:
-        strat = ValueAreaReversionStrategy()
-        print(f"   - Instantiated {strat.name}: OK")
-        return True
-    except Exception as e:
-        print(f"   - Strategy Error: {e}")
-        return False
+    ticker = "SPY"
+    print(f"Testing all quant features with {ticker}...\n")
 
-def test_quant_engine():
-    print("2. Testing Quant Engine...")
-    try:
-        # Monte Carlo
-        trades = pd.DataFrame({'P&L': [100, -50, 200, -100, 150]})
-        mc = MonteCarloSimulator(trades, 10000, 100)
-        res = mc.run()
-        print(f"   - Monte Carlo: {len(res['simulations'])} runs, Median: {res['median']}: OK")
+    # Get VP data
+    engine = VolumeProfileEngine(ticker, period='1y', interval='1d')
+    metrics = engine.get_all_metrics()
+    data = engine.data
+    poc, vah, val = metrics['poc'], metrics['vah'], metrics['val']
 
-        # Kelly
-        kc = KellyCriterion()
-        k = kc.calculate(0.6, 2.0)
-        print(f"   - Kelly (WR=0.6, R=2): {k:.2f}: OK")
+    # Test 1: Strategy
+    print("1. Value Area Reversion Strategy...")
+    strategy = ValueAreaReversionStrategy(initial_capital=10000)
+    results = strategy.run(data, poc, vah, val)
+    print(f"   Trades: {results.get('total_trades', 0)}")
+    print(f"   Win Rate: {results.get('win_rate', 0):.1f}%")
+    print(f"   Return: {results.get('total_return_pct', 0):+.1f}%")
 
-        # Z-Score
-        z = ZScoreCalculator()
-        series = pd.Series(np.random.normal(0, 1, 100))
-        val = z.calculate(series)
-        print(f"   - Z-Score: {val:.2f}: OK")
-        
-        return True
-    except Exception as e:
-        print(f"   - Quant Engine Error: {e}")
-        return False
+    # Test 2: Monte Carlo
+    print("\n2. Monte Carlo Simulation...")
+    mc = MonteCarloSimulator()
+    mc_results = mc.run(0.65, 150, 100, 100, 1000)
+    print(f"   Prob of profit: {mc_results['results']['probability_of_profit']}%")
 
-def test_backtester():
-    print("3. Testing BacktestEngine...")
-    try:
-        engine = BacktestEngine()
-        print(f"   - Engine initialized with {len(engine.strategies)} strategies: OK")
-        # Cannot run full backtest without yfinance data in this script easily, 
-        # but initialization confirms imports and structure.
-        return True
-    except Exception as e:
-        print(f"   - Backtester Error: {e}")
-        return False
+    # Test 3: Z-Score
+    print("\n3. Z-Score Calculator...")
+    z = ZScoreCalculator()
+    z_results = z.calculate(data, poc)
+    print(f"   Z-Score: {z_results['current_z_score']}")
+    print(f"   Signal: {z_results['signal']}")
+
+    # Test 4: Regime Detection
+    print("\n4. Regime Detection...")
+    regime = RegimeDetector()
+    r = regime.detect(data)
+    print(f"   Regime: {r['regime']}")
+    print(f"   Best Strategy: {r['best_strategy']}")
+
+    # Test 5: Kelly
+    print("\n5. Kelly Criterion...")
+    kelly = KellyCriterion()
+    k = kelly.calculate(0.65, 150, 100)
+    print(f"   Safe Kelly: {k['safe_kelly_pct']:.1f}%")
+
+    # Test 6: Full Backtest
+    print("\n6. Full Backtester...")
+    bt = BacktestEngine()
+    full = bt.run_backtest(ticker, 'value_area_reversion', '1y')
+    print(f"   Return: {full.get('total_return_pct', 0):+.1f}%")
+    print(f"   Regime: {full.get('regime', {}).get('regime', 'N/A')}")
+
+    print("\n[OK] All quant features working!")
 
 if __name__ == "__main__":
-    print("=== QUANT ENGINE VERIFICATION ===")
-    s1 = test_strategies()
-    s2 = test_quant_engine()
-    s3 = test_backtester()
-    
-    if s1 and s2 and s3:
-        print("\n✅ All quant features working!")
-    else:
-        print("\n❌ Verification Failed")
+    test_all()
