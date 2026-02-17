@@ -292,9 +292,7 @@ st.sidebar.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-auto_refresh = st.sidebar.checkbox("Live Refresh (10s)", value=False)
-if auto_refresh:
-    st_autorefresh(interval=10000, limit=None, key="live_refresh")
+
 
 # Keyboard Shortcuts (JS Injection)
 st.components.v1.html("""
@@ -421,22 +419,29 @@ with tab_my:
         @st.cache_data(ttl=60)
         def get_heatmap_data_v2(tickers):
             data = []
+            errors = []
             for t in tickers:
                 try:
                     yf_t = YAHOO_TICKER_MAP.get(t.upper(), t.upper())
-                    info = yf.Ticker(yf_t).fast_info
+                    ticker_obj = yf.Ticker(yf_t)
                     
-                    # 1. Get Market Cap / Size (Handle ETFs)
-                    mcap = info.get('market_cap')
-                    if mcap is None:
-                        mcap = info.get('totalAssets')
-                    if mcap is None:
-                        mcap = 1e9  # Default to 1B
-                    
-                    # 2. Get Price Change
-                    price = info.get('last_price')
-                    prev = info.get('previous_close')
-                    
+                    # Try fast_info first
+                    try:
+                        info = ticker_obj.fast_info
+                        mcap = info.get('market_cap')
+                        if mcap is None: mcap = info.get('totalAssets')
+                        price = info.get('last_price')
+                        prev = info.get('previous_close')
+                    except:
+                        # Fallback to standard info (slower but more robust?)
+                        info = ticker_obj.info
+                        mcap = info.get('marketCap')
+                        if mcap is None: mcap = info.get('totalAssets')
+                        price = info.get('currentPrice') or info.get('regularMarketPrice')
+                        prev = info.get('previousClose') or info.get('regularMarketPreviousClose')
+
+                    if mcap is None: mcap = 1e9 
+
                     if price and prev:
                         change = (price - prev) / prev * 100
                         data.append({
@@ -446,14 +451,17 @@ with tab_my:
                             'Abs Change': abs(change),
                             'Color': 'Green' if change >= 0 else 'Red'
                         })
+                    else:
+                        errors.append(f"{t}: No price data")
                 except Exception as e:
-                    # st.write(f"Error fetching {t}: {e}") # Debug
-                    pass
-            return pd.DataFrame(data)
+                    errors.append(f"{t}: {str(e)}")
+            
+            return pd.DataFrame(data), errors
 
         if wl_names_ov and wl_tickers_ov:
             with st.spinner("Generating heatmap..."):
-                hm_df = get_heatmap_data_v2(wl_tickers_ov)
+                hm_df, hm_errors = get_heatmap_data_v2(wl_tickers_ov)
+                
                 if not hm_df.empty:
                     fig_hm = px.treemap(
                         hm_df, path=['Ticker'], values='Market Cap',
@@ -467,7 +475,11 @@ with tab_my:
                     fig_hm.data[0].texttemplate = "%{label}<br>%{customdata[0]:.2f}%"
                     st.plotly_chart(fig_hm, use_container_width=True)
                 else:
-                    st.info("Insufficient data for heatmap. Check internet or ticker symbols.")
+                    st.warning("Insufficient data for heatmap.")
+                    if hm_errors:
+                        with st.expander("Debug Errors"):
+                            for e in hm_errors:
+                                st.write(e)
 
     # ---- WATCHLIST MANAGER ----
     with my_tabs[1]:
@@ -771,6 +783,10 @@ if 'run' in st.session_state:
 
 # --- TAB 1: MARKET ANALYSIS ---
 with tab1:
+    # Auto-Refresh Logic (local to Analysis)
+    if st.checkbox("Auto-Refresh Analysis (10s)", value=False, key="ar_analysis"):
+        st_autorefresh(interval=10000, limit=None, key="refresh_analysis")
+
     if not data_loaded:
         st.info("Open sidebar, enter a ticker, and click Run Analysis.")
     else:
