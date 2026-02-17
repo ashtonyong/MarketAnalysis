@@ -196,6 +196,8 @@ with st.sidebar.expander("Quick Select", expanded=False):
     for btn, col in [("SPY", idx_cols[0]), ("QQQ", idx_cols[1]), ("IWM", idx_cols[2])]:
         if col.button(btn, key=f"q_{btn}", use_container_width=True):
             st.session_state['current_ticker'] = btn
+            st.session_state['ticker_select'] = btn if btn in popular_tickers else "Custom"
+            if btn not in popular_tickers: st.session_state['last_custom'] = btn
             st.rerun()
     
     st.markdown("**Tech**")
@@ -203,6 +205,8 @@ with st.sidebar.expander("Quick Select", expanded=False):
     for btn, col in [("AAPL", tech_cols[0]), ("TSLA", tech_cols[1]), ("NVDA", tech_cols[2])]:
         if col.button(btn, key=f"q_{btn}", use_container_width=True):
             st.session_state['current_ticker'] = btn
+            st.session_state['ticker_select'] = btn if btn in popular_tickers else "Custom"
+            if btn not in popular_tickers: st.session_state['last_custom'] = btn
             st.rerun()
 
     st.markdown("**Macro / Crypto**")
@@ -210,6 +214,8 @@ with st.sidebar.expander("Quick Select", expanded=False):
     for btn, lbl, col in [("GC=F", "GOLD", macro_cols[0]), ("BTC-USD", "BTC", macro_cols[1]), ("ETH-USD", "ETH", macro_cols[2])]:
         if col.button(lbl, key=f"q_{lbl}", use_container_width=True):
             st.session_state['current_ticker'] = btn
+            st.session_state['ticker_select'] = btn if btn in popular_tickers else "Custom"
+            if btn not in popular_tickers: st.session_state['last_custom'] = btn
             st.rerun()
 
 # Recent Tickers
@@ -225,6 +231,8 @@ if st.session_state['recent_tickers']:
     for i, t in enumerate(st.session_state['recent_tickers']):
         if rec_cols[i].button(t, key=f"rec_{t}", use_container_width=True):
             st.session_state['current_ticker'] = t
+            st.session_state['ticker_select'] = t if t in popular_tickers else "Custom"
+            if t not in popular_tickers: st.session_state['last_custom'] = t
             st.rerun()
 
 st.sidebar.divider()
