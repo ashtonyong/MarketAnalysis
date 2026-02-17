@@ -359,8 +359,49 @@ with tab_my:
                                 st.caption(f"{wt}: No data")
                         except Exception:
                             st.caption(f"{wt}: Error")
+                            st.caption(f"{wt}: Error")
         else:
             st.info("No watchlists yet. Create one in the Watchlists tab.")
+
+        st.markdown("---")
+        st.markdown("### Portfolio Heatmap")
+        
+        @st.cache_data(ttl=60)
+        def get_heatmap_data(tickers):
+            data = []
+            for t in tickers:
+                try:
+                    info = yf.Ticker(t).fast_info
+                    change = (info['last_price'] - info['previous_close']) / info['previous_close'] * 100
+                    mcap = info['market_cap']
+                    data.append({
+                        'Ticker': t,
+                        'Change': change,
+                        'Market Cap': mcap,
+                        'Abs Change': abs(change),
+                        'Color': 'Green' if change >= 0 else 'Red'
+                    })
+                except:
+                    pass
+            return pd.DataFrame(data)
+
+        if wl_names_ov and wl_tickers_ov:
+            with st.spinner("Generating heatmap..."):
+                hm_df = get_heatmap_data(wl_tickers_ov)
+                if not hm_df.empty:
+                    fig_hm = px.treemap(
+                        hm_df, path=['Ticker'], values='Market Cap',
+                        color='Change', color_continuous_scale='RdYlGn',
+                        color_continuous_midpoint=0,
+                        hover_data=['Change', 'Market Cap'],
+                        title=f"Market Performance ({selected_wl})"
+                    )
+                    fig_hm.update_layout(height=400, template='plotly_dark')
+                    fig_hm.data[0].textinfo = 'label+text+value'
+                    fig_hm.data[0].texttemplate = "%{label}<br>%{customdata[0]:.2f}%"
+                    st.plotly_chart(fig_hm, use_container_width=True)
+                else:
+                    st.info("Insufficient data for heatmap.")
 
     # ---- WATCHLIST MANAGER ----
     with my_tabs[1]:
@@ -698,6 +739,51 @@ with tab1:
             lev_cols[2].metric("VAL", f"${metrics['val']:.2f}")
             levels_txt = f"POC: {metrics['poc']:.2f} | VAH: {metrics['vah']:.2f} | VAL: {metrics['val']:.2f}"
             st.code(levels_txt, language=None)
+
+        # Comparison Mode
+        if st.checkbox("Compare with...", key='comp_mode'):
+            st.markdown("#### Comparison Analysis")
+            c_col1, c_col2, c_col3 = st.columns(3)
+            c_ticker = c_col1.text_input("Comp Ticker", value=ticker, key='c_ticker').upper()
+            c_period = c_col2.selectbox("Comp Period", ["1d", "5d", "1mo", "3mo", "6mo"], index=2, key='c_period')
+            c_interval = c_col3.selectbox("Comp Interval", ["5m", "15m", "1h", "1d"], index=2, key='c_interval')
+
+            if st.button("Run Comparison"):
+                with st.spinner(f"Comparing with {c_ticker}..."):
+                    try:
+                        # Use a separate engine for comparison
+                        c_engine = VolumeProfileEngine(c_ticker, c_period, c_interval)
+                        c_engine.fetch_data()
+                        c_engine.calculate_volume_profile()
+                        c_metrics = c_engine.get_all_metrics()
+                        
+                        # Comparison Table
+                        st.markdown(f"**VS {c_ticker} ({c_period})**")
+                        comp_data = {
+                            "Metric": ["Price", "POC", "VA Width", "Total Vol"],
+                            f"Current ({ticker})": [
+                                f"${metrics['current_price']:.2f}",
+                                f"${metrics['poc']:.2f}",
+                                f"{metrics['va_width_pct']:.2f}%",
+                                f"{metrics['total_volume']:,}"
+                            ],
+                            f"Comp ({c_ticker})": [
+                                f"${c_metrics['current_price']:.2f}",
+                                f"${c_metrics['poc']:.2f}",
+                                f"{c_metrics['va_width_pct']:.2f}%",
+                                f"{c_metrics['total_volume']:,}"
+                            ],
+                            "Delta": [
+                                f"{(metrics['current_price'] - c_metrics['current_price']):.2f}",
+                                f"{(metrics['poc'] - c_metrics['poc']):.2f}",
+                                f"{(metrics['va_width_pct'] - c_metrics['va_width_pct']):.2f}%",
+                                f"{(metrics['total_volume'] - c_metrics['total_volume']):,}"
+                            ]
+                        }
+                        st.dataframe(pd.DataFrame(comp_data), hide_index=True, use_container_width=True)
+
+                    except Exception as e:
+                        st.error(f"Comparison failed: {e}")
 
         # Toast notification
         st.toast(f"Analysis complete for {ticker}", icon="✅")
