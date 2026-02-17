@@ -297,7 +297,8 @@ st.sidebar.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-SidebarWidgets.render_events_nav()
+SidebarWidgets.render_compact_events()
+SidebarWidgets.render_compact_earnings()
 
 
 
@@ -344,8 +345,8 @@ st.sidebar.caption(f"{_now.strftime('%H:%M')} · Market {_market}")
 st.sidebar.markdown("<div style='font-size:10px;color:#484f58;'>VP Terminal v2.1 • Fixed</div>", unsafe_allow_html=True)
 
 # --- TABS ---
-(tab_my, tab_tv, tab1, tab2, tab_analytics, tab_tools, tab_news, tab_research) = st.tabs([
-    "Home", "Chart", "Analysis", "Order Flow",
+(tab_my, tab_tv, tab_events, tab1, tab2, tab_analytics, tab_tools, tab_news, tab_research) = st.tabs([
+    "Home", "Chart", "Events", "Analysis", "Order Flow",
     "Analytics", "Tools", "News", "Research"
 ])
 
@@ -361,12 +362,6 @@ with tab_my:
 
     # ---- OVERVIEW (Command Center) ----
     with my_tabs[0]:
-        # Top Events Widgets (Phase 9)
-        EventsWidgets.render_detailed_calendar()
-        EventsWidgets.render_market_overview_events()
-        
-        st.markdown("---")
-        
         # Summary Cards Row
         active_alerts = alert_engine.get_active_alerts()
         triggered_alerts = alert_engine.get_triggered_alerts()
@@ -793,6 +788,11 @@ if 'run' in st.session_state:
     except Exception as e:
         st.warning(f"Data loading failed for '{ticker}': {e}. Chart tab still works.")
         data_loaded = False
+
+# --- TAB: EVENTS (Dedicated) ---
+with tab_events:
+    EventsWidgets.render_detailed_calendar()
+    EventsWidgets.render_market_overview_events()
 
 # --- TAB 1: MARKET ANALYSIS ---
 with tab1:

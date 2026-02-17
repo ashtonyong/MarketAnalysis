@@ -131,22 +131,62 @@ class SidebarWidgets:
         st.sidebar.markdown("---")
 
     @staticmethod
-    def render_events_nav():
-        st.sidebar.markdown("### Economic Events")
-        
-        # Navigation link with arrow
-        # We'll use a button with an arrow emoji and a callback to switch to Home tab
-        # or just a stylized link.
-        
-        if st.sidebar.button("View Detailed Calendar ➔", use_container_width=True):
-            # JS hack to switch to the Home tab (index 0)
+    def render_compact_events():
+        st.sidebar.markdown("### Top Economic Events")
+        # Navigate arrow
+        if st.sidebar.button("Full Economic Calendar >", key="nav_eco", use_container_width=True):
             st.components.v1.html("""
                 <script>
                 const tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
-                if (tabs.length > 0) {
-                    tabs[0].click();
-                }
+                if (tabs.length > 2) tabs[2].click();
                 </script>
             """, height=0)
-            
-        st.sidebar.caption("Click to view full schedule in Home tab.")
+
+        html = """
+        <div class="tradingview-widget-container">
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
+          {
+          "colorTheme": "dark",
+          "isTransparent": true,
+          "width": "100%",
+          "height": "300",
+          "locale": "en",
+          "importanceFilter": "1",
+          "currencyFilter": "USD"
+        }
+          </script>
+        </div>
+        """
+        components.html(html, height=310)
+        st.sidebar.markdown("---")
+
+    @staticmethod
+    def render_compact_earnings():
+        st.sidebar.markdown("### Earnings Events")
+        # Navigate arrow
+        if st.sidebar.button("Full Earnings View >", key="nav_earn", use_container_width=True):
+            st.components.v1.html("""
+                <script>
+                const tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
+                if (tabs.length > 2) tabs[2].click();
+                </script>
+            """, height=0)
+
+        html = """
+        <div class="tradingview-widget-container">
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
+          {
+          "colorTheme": "dark",
+          "isTransparent": true,
+          "width": "100%",
+          "height": "300",
+          "locale": "en",
+          "importanceFilter": "0,1",
+          "displayMode": "regular",
+          "eventTypes": ["earnings"]
+        }
+          </script>
+        </div>
+        """
+        components.html(html, height=310)
+        st.sidebar.markdown("---")
