@@ -41,7 +41,7 @@ st.markdown("""
 
     /* Sidebar */
     [data-testid="stSidebar"] { background: #0d1117; border-right: 1px solid #21262d; }
-    [data-testid="stSidebar"][aria-expanded="true"] { min-width: 260px; max-width: 260px; }
+    [data-testid="stSidebar"][aria-expanded="true"] { min-width: 260px; }
     [data-testid="stSidebar"][aria-expanded="false"] { min-width: 0px; max-width: 0px; }
     section[data-testid="stSidebar"] > div { padding-top: 1rem; }
 
@@ -370,17 +370,30 @@ with tab_my:
             data = []
             for t in tickers:
                 try:
-                    info = yf.Ticker(t).fast_info
-                    change = (info['last_price'] - info['previous_close']) / info['previous_close'] * 100
-                    mcap = info['market_cap']
-                    data.append({
-                        'Ticker': t,
-                        'Change': change,
-                        'Market Cap': mcap,
-                        'Abs Change': abs(change),
-                        'Color': 'Green' if change >= 0 else 'Red'
-                    })
-                except:
+                    yf_t = YAHOO_TICKER_MAP.get(t.upper(), t.upper())
+                    info = yf.Ticker(yf_t).fast_info
+                    
+                    # 1. Get Market Cap / Size (Handle ETFs)
+                    mcap = info.get('market_cap')
+                    if mcap is None:
+                        mcap = info.get('totalAssets')
+                    if mcap is None:
+                        mcap = 1e9  # Default to 1B so it shows up if data is missing
+                    
+                    # 2. Get Price Change
+                    price = info.get('last_price')
+                    prev = info.get('previous_close')
+                    
+                    if price and prev:
+                        change = (price - prev) / prev * 100
+                        data.append({
+                            'Ticker': t,
+                            'Change': change,
+                            'Market Cap': mcap,
+                            'Abs Change': abs(change),
+                            'Color': 'Green' if change >= 0 else 'Red'
+                        })
+                except Exception:
                     pass
             return pd.DataFrame(data)
 
