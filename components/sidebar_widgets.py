@@ -130,9 +130,9 @@ class SidebarWidgets:
     @staticmethod
     def render_compact_events():
         with st.sidebar:
-            col_h, col_a = st.columns([5, 2])
+            col_h, col_a = st.columns([6, 1])
             col_h.markdown("### Economic Events")
-            if col_a.button("View All", key="nav_eco_mini", use_container_width=True):
+            if col_a.button(">", key="nav_eco_mini"):
                  st.components.v1.html("""
                     <script>
                     const tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
@@ -160,9 +160,9 @@ class SidebarWidgets:
     @staticmethod
     def render_compact_earnings():
         with st.sidebar:
-            col_h, col_a = st.columns([5, 2])
+            col_h, col_a = st.columns([6, 1])
             col_h.markdown("### Earnings Events")
-            if col_a.button("View All", key="nav_earn_mini", use_container_width=True):
+            if col_a.button(">", key="nav_earn_mini"):
                  st.components.v1.html("""
                     <script>
                     const tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
