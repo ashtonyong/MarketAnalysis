@@ -279,8 +279,7 @@ if st.sidebar.button("Run Analysis", use_container_width=True, type="primary"):
 
 # --- SIDEBAR FOOTER ---
 st.sidebar.markdown("---")
-import datetime
-_now = datetime.datetime.now()
+_now = datetime.now()
 _hr = _now.hour
 _market = "Open" if 9 <= _hr < 16 else "Closed"
 st.sidebar.caption(f"{_now.strftime('%H:%M')} · Market {_market}")
