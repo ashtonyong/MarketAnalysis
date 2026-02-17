@@ -190,34 +190,35 @@ tv_ticker = TV_TICKER_MAP.get(raw_ticker, raw_ticker)
 if yahoo_ticker != raw_ticker:
     st.sidebar.caption(f"Yahoo Finance: {yahoo_ticker}")
 
-# Quick Select Categories (Updates session state to trigger rerun)
+# Helper for callbacks
+def set_ticker(t):
+    st.session_state['current_ticker'] = t
+    st.session_state['ticker_select'] = t if t in popular_tickers else "Custom"
+    if t not in popular_tickers:
+        st.session_state['last_custom'] = t
+    # Update recent tickers logic here too if needed, but it depends on raw_ticker which is set later.
+    # Actually, recent tickers update happens on the NEXT run when raw_ticker is read.
+    # But if we click "Recent", we are selecting it.
+    
+# Quick Select Categories (Updates session state via callback)
 with st.sidebar.expander("Quick Select", expanded=False):
     st.markdown("**Indices**")
     idx_cols = st.columns(3)
     for btn, col in [("SPY", idx_cols[0]), ("QQQ", idx_cols[1]), ("IWM", idx_cols[2])]:
-        if col.button(btn, key=f"q_{btn}", use_container_width=True):
-            st.session_state['current_ticker'] = btn
-            st.session_state['ticker_select'] = btn if btn in popular_tickers else "Custom"
-            if btn not in popular_tickers: st.session_state['last_custom'] = btn
-            st.rerun()
+        col.button(btn, key=f"q_{btn}", use_container_width=True, 
+                   on_click=set_ticker, args=(btn,))
     
     st.markdown("**Tech**")
     tech_cols = st.columns(3)
     for btn, col in [("AAPL", tech_cols[0]), ("TSLA", tech_cols[1]), ("NVDA", tech_cols[2])]:
-        if col.button(btn, key=f"q_{btn}", use_container_width=True):
-            st.session_state['current_ticker'] = btn
-            st.session_state['ticker_select'] = btn if btn in popular_tickers else "Custom"
-            if btn not in popular_tickers: st.session_state['last_custom'] = btn
-            st.rerun()
+        col.button(btn, key=f"q_{btn}", use_container_width=True, 
+                   on_click=set_ticker, args=(btn,))
 
     st.markdown("**Macro / Crypto**")
     macro_cols = st.columns(3)
     for btn, lbl, col in [("XAUUSD", "GOLD", macro_cols[0]), ("BTCUSD", "BTC", macro_cols[1]), ("ETHUSD", "ETH", macro_cols[2])]:
-        if col.button(lbl, key=f"q_{lbl}", use_container_width=True):
-            st.session_state['current_ticker'] = btn
-            st.session_state['ticker_select'] = btn if btn in popular_tickers else "Custom"
-            if btn not in popular_tickers: st.session_state['last_custom'] = btn
-            st.rerun()
+        col.button(lbl, key=f"q_{lbl}", use_container_width=True, 
+                   on_click=set_ticker, args=(btn,))
 
 # Recent Tickers
 if 'recent_tickers' not in st.session_state:
@@ -230,11 +231,8 @@ if st.session_state['recent_tickers']:
     st.sidebar.caption("Recent:")
     rec_cols = st.sidebar.columns(len(st.session_state['recent_tickers']))
     for i, t in enumerate(st.session_state['recent_tickers']):
-        if rec_cols[i].button(t, key=f"rec_{t}", use_container_width=True):
-            st.session_state['current_ticker'] = t
-            st.session_state['ticker_select'] = t if t in popular_tickers else "Custom"
-            if t not in popular_tickers: st.session_state['last_custom'] = t
-            st.rerun()
+        rec_cols[i].button(t, key=f"rec_{t}", use_container_width=True, 
+                           on_click=set_ticker, args=(t,))
 
 st.sidebar.divider()
 st.sidebar.subheader("Analysis Settings")
