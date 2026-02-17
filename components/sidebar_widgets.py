@@ -72,122 +72,119 @@ class SidebarWidgets:
 
     @staticmethod
     def render_indices():
-        st.sidebar.markdown("### Market Overview")
-        data = SidebarWidgets.fetch_indices_data()
-        
-        # Grid layout
-        cols = st.sidebar.columns(2)
-        idx_names = list(data.keys())
-        
-        for i, name in enumerate(idx_names):
-            if name in data:
-                d = data[name]
-                col = cols[i % 2]
-                with col:
-                    color = "#238636" if d['change'] >= 0 else "#da3633"
-                    st.markdown(f"""
-                    <div style="background-color: #0e1117; border: 1px solid #30363d; border-radius: 6px; padding: 8px; margin-bottom: 8px;">
-                        <div style="font-size: 10px; color: #8b949e; font-weight: 600;">{name}</div>
-                        <div style="font-size: 14px; font-weight: bold;">{d['price']:,.2f}</div>
-                        <div style="font-size: 11px; color: {color};">
-                             {d['change']:+.2f} ({d['pct']:+.2f}%)
+        with st.sidebar:
+            st.markdown("### Market Overview")
+            data = SidebarWidgets.fetch_indices_data()
+            
+            # Grid layout
+            cols = st.columns(2)
+            idx_names = list(data.keys())
+            
+            for i, name in enumerate(idx_names):
+                if name in data:
+                    d = data[name]
+                    col = cols[i % 2]
+                    with col:
+                        color = "#238636" if d['change'] >= 0 else "#da3633"
+                        st.markdown(f"""
+                        <div style="background-color: #0e1117; border: 1px solid #30363d; border-radius: 6px; padding: 8px; margin-bottom: 8px;">
+                            <div style="font-size: 10px; color: #8b949e; font-weight: 600;">{name}</div>
+                            <div style="font-size: 14px; font-weight: bold;">{d['price']:,.2f}</div>
+                            <div style="font-size: 11px; color: {color};">
+                                 {d['change']:+.2f} ({d['pct']:+.2f}%)
+                            </div>
                         </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    # Sparkline (using plotly minimal) - Optional: too heavy for sidebar? 
-                    # Let's try CSS-only sparkline or skipping it for speed first.
-                    # User screenshot has small sparklines.
-                    # We can use st.line_chart but it takes space.
-                    # Let's use a very small plotly chart.
-                    if d['history']:
-                        fig = go.Figure(go.Scatter(y=d['history'], mode='lines', line=dict(color=color, width=1)))
-                        fig.update_layout(
-                            height=30, margin=dict(l=0,r=0,t=0,b=0),
-                            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                            xaxis=dict(visible=False), yaxis=dict(visible=False)
-                        )
-                        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-                    
-        st.sidebar.markdown("---")
+                        """, unsafe_allow_html=True)
+                        
+                        if d['history']:
+                            fig = go.Figure(go.Scatter(y=d['history'], mode='lines', line=dict(color=color, width=1)))
+                            fig.update_layout(
+                                height=30, margin=dict(l=0,r=0,t=0,b=0),
+                                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                                xaxis=dict(visible=False), yaxis=dict(visible=False)
+                            )
+                            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+                        
+            st.markdown("---")
 
     @staticmethod
     def render_trending():
-        st.sidebar.markdown("### Trending Tickers")
-        data = SidebarWidgets.fetch_trending_data()
-        
-        for item in data:
-            color = "#238636" if item['Change'] >= 0 else "#da3633"
-            st.sidebar.markdown(f"""
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                <span style="font-weight: bold; font-size: 13px;">{item['Ticker']}</span>
-                <span style="font-size: 13px;">${item['Price']:.2f}</span>
-                <span style="color: {color}; font-size: 12px; background: rgba({35 if item['Change']>=0 else 218}, {134 if item['Change']>=0 else 54}, {54 if item['Change']>=0 else 51}, 0.2); padding: 2px 4px; border-radius: 4px;">
-                    {item['Change']:+.2f}%
-                </span>
-            </div>
-            """, unsafe_allow_html=True)
+        with st.sidebar:
+            st.markdown("### Trending Tickers")
+            data = SidebarWidgets.fetch_trending_data()
             
-        st.sidebar.markdown("---")
+            for item in data:
+                color = "#238636" if item['Change'] >= 0 else "#da3633"
+                st.markdown(f"""
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <span style="font-weight: bold; font-size: 13px;">{item['Ticker']}</span>
+                    <span style="font-size: 13px;">${item['Price']:.2f}</span>
+                    <span style="color: {color}; font-size: 12px; background: rgba({35 if item['Change']>=0 else 218}, {134 if item['Change']>=0 else 54}, {54 if item['Change']>=0 else 51}, 0.2); padding: 2px 4px; border-radius: 4px;">
+                        {item['Change']:+.2f}%
+                    </span>
+                </div>
+                """, unsafe_allow_html=True)
+                
+            st.markdown("---")
 
     @staticmethod
     def render_compact_events():
-        # Header with navigation arrow
-        col_h, col_a = st.sidebar.columns([7, 1])
-        col_h.markdown("### Economic Events")
-        if col_a.button(">", key="nav_eco_mini"):
-             st.components.v1.html("""
-                <script>
-                const tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
-                if (tabs.length > 2) tabs[2].click();
-                </script>
-            """, height=0)
+        with st.sidebar:
+            col_h, col_a = st.columns([7, 1])
+            col_h.markdown("### Economic Events")
+            if col_a.button(">", key="nav_eco_mini"):
+                 st.components.v1.html("""
+                    <script>
+                    const tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
+                    if (tabs.length > 2) tabs[2].click();
+                    </script>
+                """, height=0)
 
-        html = """
-        <div class="tradingview-widget-container">
-          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
-          {
-          "colorTheme": "dark",
-          "isTransparent": true,
-          "width": "100%",
-          "height": "400",
-          "locale": "en",
-          "importanceFilter": "0,1,2"
-        }
-          </script>
-        </div>
-        """
-        components.html(html, height=410)
-        st.sidebar.markdown("---")
+            html = """
+            <div class="tradingview-widget-container">
+              <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
+              {
+              "colorTheme": "dark",
+              "isTransparent": true,
+              "width": "100%",
+              "height": "400",
+              "locale": "en",
+              "importanceFilter": "0,1,2"
+            }
+              </script>
+            </div>
+            """
+            components.html(html, height=410)
+            st.markdown("---")
 
     @staticmethod
     def render_compact_earnings():
-        # Header with navigation arrow
-        col_h, col_a = st.sidebar.columns([7, 1])
-        col_h.markdown("### Earnings Events")
-        if col_a.button(">", key="nav_earn_mini"):
-             st.components.v1.html("""
-                <script>
-                const tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
-                if (tabs.length > 2) tabs[2].click();
-                </script>
-            """, height=0)
+        with st.sidebar:
+            col_h, col_a = st.columns([7, 1])
+            col_h.markdown("### Earnings Events")
+            if col_a.button(">", key="nav_earn_mini"):
+                 st.components.v1.html("""
+                    <script>
+                    const tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
+                    if (tabs.length > 2) tabs[2].click();
+                    </script>
+                """, height=0)
 
-        html = """
-        <div class="tradingview-widget-container">
-          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
-          {
-          "colorTheme": "dark",
-          "isTransparent": true,
-          "width": "100%",
-          "height": "400",
-          "locale": "en",
-          "importanceFilter": "0,1,2",
-          "displayMode": "regular",
-          "eventTypes": ["earnings"]
-        }
-          </script>
-        </div>
-        """
-        components.html(html, height=410)
-        st.sidebar.markdown("---")
+            html = """
+            <div class="tradingview-widget-container">
+              <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
+              {
+              "colorTheme": "dark",
+              "isTransparent": true,
+              "width": "100%",
+              "height": "400",
+              "locale": "en",
+              "importanceFilter": "0,1,2",
+              "displayMode": "regular",
+              "eventTypes": ["earnings"]
+            }
+              </script>
+            </div>
+            """
+            components.html(html, height=410)
+            st.markdown("---")
