@@ -5,7 +5,8 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import plotly.express as px
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
+from components.sidebar_widgets import SidebarWidgets
 from volume_profile_engine import VolumeProfileEngine
 from volume_profile_backtester import VolumeProfileBacktester, STRATEGIES
 from ai_agent_interface import VolumeProfileAgent
@@ -201,6 +202,7 @@ def set_ticker(t):
     # But if we click "Recent", we are selecting it.
     
 # Quick Select Categories (Updates session state via callback)
+SidebarWidgets.render_indices()
 with st.sidebar.expander("Quick Select", expanded=False):
     st.markdown("**Indices**")
     idx_cols = st.columns(3)
@@ -233,6 +235,8 @@ if st.session_state['recent_tickers']:
     for i, t in enumerate(st.session_state['recent_tickers']):
         rec_cols[i].button(t, key=f"rec_{t}", use_container_width=True, 
                            on_click=set_ticker, args=(t,))
+
+SidebarWidgets.render_trending()
 
 st.sidebar.divider()
 st.sidebar.subheader("Analysis Settings")
@@ -291,6 +295,8 @@ st.sidebar.markdown(f"""
     <span style='font-size:11px;color:#238636;font-weight:600;'>● LIVE ({last_upd})</span>
 </div>
 """, unsafe_allow_html=True)
+
+SidebarWidgets.render_calendar()
 
 
 
@@ -428,10 +434,10 @@ with tab_my:
                     # Try fast_info first
                     try:
                         info = ticker_obj.fast_info
-                        mcap = info.get('market_cap')
-                        if mcap is None: mcap = info.get('totalAssets')
-                        price = info.get('last_price')
-                        prev = info.get('previous_close')
+                        mcap = info.market_cap
+                        if mcap is None: mcap = info.total_assets
+                        price = info.last_price
+                        prev = info.previous_close
                     except:
                         # Fallback to standard info (slower but more robust?)
                         info = ticker_obj.info
