@@ -1825,29 +1825,12 @@ with tab_news:
 
     with news_sub[1]:
         st.subheader("Economic Calendar")
-        st.caption("Upcoming high-impact economic events that affect markets.")
-
-        import streamlit.components.v1 as components_cal
-        cal_html = """
-        <div style="height:600px;overflow:auto;">
-        <!-- TradingView Widget BEGIN -->
-        <div class="tradingview-widget-container">
-          <div class="tradingview-widget-container__widget"></div>
-          <script type="text/javascript"
-            src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
-            {
-              "colorTheme": "dark",
-              "isTransparent": true,
-              "width": "100%",
-              "height": "580",
-              "locale": "en",
-              "importanceFilter": "0,1",
-              "countryFilter": "us,eu,gb,jp,cn"
-            }
-          </script>
-        </div>
-        <!-- TradingView Widget END -->
-        </div>
-        """
-        components_cal.html(cal_html, height=620)
+        st.info("The full Economic Calendar and Earnings schedule has moved to the dedicated **Events** tab.")
+        if st.button("Go to Events Tab ➔", key="news_to_events"):
+            st.components.v1.html("""
+                <script>
+                const tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
+                if (tabs.length > 2) tabs[2].click();
+                </script>
+            """, height=0)
 

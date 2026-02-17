@@ -132,10 +132,11 @@ class SidebarWidgets:
 
     @staticmethod
     def render_compact_events():
-        st.sidebar.markdown("### Top Economic Events")
-        # Navigate arrow
-        if st.sidebar.button("Full Economic Calendar >", key="nav_eco", use_container_width=True):
-            st.components.v1.html("""
+        # Header with navigation arrow
+        col_h, col_a = st.sidebar.columns([7, 1])
+        col_h.markdown("### Top Economic Events")
+        if col_a.button(">", key="nav_eco_mini"):
+             st.components.v1.html("""
                 <script>
                 const tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
                 if (tabs.length > 2) tabs[2].click();
@@ -149,7 +150,7 @@ class SidebarWidgets:
           "colorTheme": "dark",
           "isTransparent": true,
           "width": "100%",
-          "height": "300",
+          "height": "220",
           "locale": "en",
           "importanceFilter": "1",
           "currencyFilter": "USD"
@@ -157,15 +158,16 @@ class SidebarWidgets:
           </script>
         </div>
         """
-        components.html(html, height=310)
+        components.html(html, height=230)
         st.sidebar.markdown("---")
 
     @staticmethod
     def render_compact_earnings():
-        st.sidebar.markdown("### Earnings Events")
-        # Navigate arrow
-        if st.sidebar.button("Full Earnings View >", key="nav_earn", use_container_width=True):
-            st.components.v1.html("""
+        # Header with navigation arrow
+        col_h, col_a = st.sidebar.columns([7, 1])
+        col_h.markdown("### Earnings Events")
+        if col_a.button(">", key="nav_earn_mini"):
+             st.components.v1.html("""
                 <script>
                 const tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
                 if (tabs.length > 2) tabs[2].click();
@@ -179,7 +181,7 @@ class SidebarWidgets:
           "colorTheme": "dark",
           "isTransparent": true,
           "width": "100%",
-          "height": "300",
+          "height": "220",
           "locale": "en",
           "importanceFilter": "0,1",
           "displayMode": "regular",
@@ -188,5 +190,5 @@ class SidebarWidgets:
           </script>
         </div>
         """
-        components.html(html, height=310)
+        components.html(html, height=230)
         st.sidebar.markdown("---")
