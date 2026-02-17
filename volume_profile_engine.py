@@ -50,7 +50,8 @@ class VolumeProfileEngine:
             self.fetch_data()
             
         if self.data.empty:
-            return pd.DataFrame()
+            self.volume_profile = pd.DataFrame()
+            return self.volume_profile
             
         # Basic calculation
         price_min = self.data['Low'].min()

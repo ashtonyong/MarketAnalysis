@@ -139,6 +139,15 @@ class ZScoreCalculator:
         Returns:
             Z-Score metrics and interpretation
         """
+        if price_data is None or price_data.empty or len(price_data) < lookback:
+            return {
+                'current_price': 0, 'current_z_score': 0, 'poc_z_score': 0,
+                'rolling_mean': 0, 'rolling_std': 0, 'signal': 'DATA_INSUFFICIENT',
+                'action': 'Wait for more data', 'color': 'gray',
+                'reversion_probability': 0, 'target_mean_reversion': 0,
+                'z_score_history': [], 'interpretation': 'Insufficient data for Z-Score'
+            }
+
         closes = price_data['Close']
         current_price = closes.iloc[-1]
 
@@ -146,13 +155,18 @@ class ZScoreCalculator:
         rolling_mean = closes.rolling(lookback).mean()
         rolling_std = closes.rolling(lookback).std()
 
-        # Current Z-Score
-        current_z = ((current_price - rolling_mean.iloc[-1]) /
-                     rolling_std.iloc[-1])
+        last_std = rolling_std.iloc[-1]
+        last_mean = rolling_mean.iloc[-1]
 
-        # Z-Score vs POC
-        poc_z = ((current_price - poc) / rolling_std.iloc[-1]
-                 if rolling_std.iloc[-1] > 0 else 0)
+        if np.isnan(last_std) or last_std == 0:
+            current_z = 0
+            poc_z = 0
+        else:
+            # Current Z-Score
+            current_z = (current_price - last_mean) / last_std
+
+            # Z-Score vs POC
+            poc_z = (current_price - poc) / last_std
 
         # Historical Z-Scores
         z_series = (closes - rolling_mean) / rolling_std
