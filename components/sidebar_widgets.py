@@ -134,7 +134,7 @@ class SidebarWidgets:
     def render_compact_events():
         # Header with navigation arrow
         col_h, col_a = st.sidebar.columns([7, 1])
-        col_h.markdown("### Top Economic Events")
+        col_h.markdown("### Economic Events")
         if col_a.button(">", key="nav_eco_mini"):
              st.components.v1.html("""
                 <script>
@@ -150,15 +150,14 @@ class SidebarWidgets:
           "colorTheme": "dark",
           "isTransparent": true,
           "width": "100%",
-          "height": "220",
+          "height": "400",
           "locale": "en",
-          "importanceFilter": "1",
-          "currencyFilter": "USD"
+          "importanceFilter": "0,1,2"
         }
           </script>
         </div>
         """
-        components.html(html, height=230)
+        components.html(html, height=410)
         st.sidebar.markdown("---")
 
     @staticmethod
@@ -181,14 +180,14 @@ class SidebarWidgets:
           "colorTheme": "dark",
           "isTransparent": true,
           "width": "100%",
-          "height": "220",
+          "height": "400",
           "locale": "en",
-          "importanceFilter": "0,1",
+          "importanceFilter": "0,1,2",
           "displayMode": "regular",
           "eventTypes": ["earnings"]
         }
           </script>
         </div>
         """
-        components.html(html, height=230)
+        components.html(html, height=410)
         st.sidebar.markdown("---")

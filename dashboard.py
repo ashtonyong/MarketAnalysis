@@ -792,7 +792,6 @@ if 'run' in st.session_state:
 # --- TAB: EVENTS (Dedicated) ---
 with tab_events:
     EventsWidgets.render_detailed_calendar()
-    EventsWidgets.render_market_overview_events()
 
 # --- TAB 1: MARKET ANALYSIS ---
 with tab1:
