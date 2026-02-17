@@ -25,13 +25,13 @@ from risk_manager import RiskManager
 from tradingview_widget import TradingViewWidget
 from ai_report import AIReportGenerator
 from multi_timeframe import MultiTimeframeAnalyzer
-from correlation import CorrelationAnalyzer
+from correlation import CorrelationAnalyzer as LegacyCorrelationAnalyzer
 from news_feed import NewsFeedAnalyzer
 from options_flow import OptionsFlowAnalyzer
 from alerts_engine import AlertsEngine, WatchlistManager
 from trade_journal import TradeJournal, TickerNotes, UserPreferences
 from backtester import BacktestEngine
-from quant_engine import MonteCarloSimulator, RegimeDetector, ZScoreCalculator, CorrelationAnalyzer
+from quant_engine import MonteCarloSimulator, RegimeDetector, ZScoreCalculator
 from strategies import BaseStrategy
 import numpy as np
 
@@ -1380,20 +1380,20 @@ with tab_analytics:
             st.subheader("Correlation Heatmap")
             st.caption("Find correlated and inversely correlated assets. Useful for hedging and divergence trading.")
 
-            corr_preset = st.selectbox("Preset", list(CorrelationAnalyzer.DEFAULT_PAIRS.keys()) + ['Custom'],
+            corr_preset = st.selectbox("Preset", list(LegacyCorrelationAnalyzer.DEFAULT_PAIRS.keys()) + ['Custom'],
                                         key='corr_preset')
             if corr_preset == 'Custom':
                 corr_tickers_str = st.text_input("Tickers (comma-separated)", "SPY,QQQ,GC=F,TLT", key='corr_custom')
                 corr_tickers = [t.strip() for t in corr_tickers_str.split(',')]
             else:
-                corr_tickers = CorrelationAnalyzer.DEFAULT_PAIRS[corr_preset]
+                corr_tickers = LegacyCorrelationAnalyzer.DEFAULT_PAIRS[corr_preset]
 
             corr_period = st.selectbox("Period", ['1mo', '3mo', '6mo', '1y'], index=1, key='corr_period')
 
             if st.button("Compute Correlation", key='corr_run'):
                 with st.spinner("Computing correlations..."):
                     try:
-                        ca = CorrelationAnalyzer(corr_tickers, period=corr_period)
+                        ca = LegacyCorrelationAnalyzer(corr_tickers, period=corr_period)
                         summary = ca.get_summary()
                         corr_matrix = summary['correlation_matrix']
 

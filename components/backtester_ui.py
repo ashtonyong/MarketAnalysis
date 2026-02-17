@@ -222,7 +222,7 @@ def render_backtester_tab(ticker: str, period: str):
                     } for t in trades[-50:]]
                     
                     df_log = pd.DataFrame(trade_data)
-                    st.dataframe(df_log, use_container_width=True, hide_index=True)
+                    st.dataframe(df_log, width="stretch", hide_index=True)
 
                     # Export
                     csv = df_log.to_csv(index=False)
@@ -248,7 +248,7 @@ def render_backtester_tab(ticker: str, period: str):
                          'Max DD %', 'Sharpe', 'Expectancy $']
 
             # Color code by return
-            st.dataframe(df_comp, use_container_width=True, hide_index=True)
+            st.dataframe(df_comp, width="stretch", hide_index=True)
 
     # ---- STANDALONE QUANT TOOLS ----
     st.divider()
@@ -346,4 +346,4 @@ def render_backtester_tab(ticker: str, period: str):
                 st.subheader("Full Correlation Matrix")
                 st.dataframe(corr_df.style.background_gradient(
                     cmap='RdYlGn', vmin=-1, vmax=1),
-                    use_container_width=True)
+                    width="stretch")
