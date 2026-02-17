@@ -133,10 +133,16 @@ class VolumeProfileEngine:
 
         total_vol = self.volume_profile['volume'].sum()
 
+        # VA Width
+        va_width = vah - val
+        va_width_pct = (va_width / poc * 100) if poc != 0 else 0
+
         return {
             'poc': poc,
             'vah': vah,
             'val': val,
+            'va_width': va_width,
+            'va_width_pct': va_width_pct,
             'current_price': current_price,
             'position': position,
             'distance_from_poc_pct': dist,

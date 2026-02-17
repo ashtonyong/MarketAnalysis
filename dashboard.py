@@ -301,14 +301,16 @@ if auto_refresh:
 # Keyboard Shortcuts (JS Injection)
 st.components.v1.html("""
 <script>
-document.addEventListener('keydown', function(e) {
+const doc = window.parent.document;
+doc.addEventListener('keydown', function(e) {
     if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
-        if (e.key >= '1' && e.key <= '8') {
-             // Logic to switch tabs would go here, but pure Streamlit doesn't support generic JS trigger easily.
-             // We'll just focus the search bar on '/'
-        }
         if (e.key === '/') {
-            // Focus ticker logic is hard in pure Streamlit without custom component
+            e.preventDefault();
+            const input = doc.querySelector('input[aria-label="Ticker"]') || doc.querySelector('input[aria-label="Enter Ticker"]');
+            if (input) {
+                input.focus();
+                input.select();
+            }
         }
     }
 });
@@ -336,7 +338,7 @@ _now = datetime.now()
 _hr = _now.hour
 _market = "Open" if 9 <= _hr < 16 else "Closed"
 st.sidebar.caption(f"{_now.strftime('%H:%M')} · Market {_market}")
-st.sidebar.markdown("<div style='font-size:10px;color:#484f58;'>VP Terminal v2.0</div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='font-size:10px;color:#484f58;'>VP Terminal v2.1 • Fixed</div>", unsafe_allow_html=True)
 
 # --- TABS ---
 (tab_my, tab_tv, tab1, tab2, tab_analytics, tab_tools, tab_news, tab_research) = st.tabs([
@@ -419,7 +421,7 @@ with tab_my:
         st.markdown("### Portfolio Heatmap")
         
         @st.cache_data(ttl=60)
-        def get_heatmap_data(tickers):
+        def get_heatmap_data_v2(tickers):
             data = []
             for t in tickers:
                 try:
@@ -431,7 +433,7 @@ with tab_my:
                     if mcap is None:
                         mcap = info.get('totalAssets')
                     if mcap is None:
-                        mcap = 1e9  # Default to 1B so it shows up if data is missing
+                        mcap = 1e9  # Default to 1B
                     
                     # 2. Get Price Change
                     price = info.get('last_price')
@@ -446,13 +448,14 @@ with tab_my:
                             'Abs Change': abs(change),
                             'Color': 'Green' if change >= 0 else 'Red'
                         })
-                except Exception:
+                except Exception as e:
+                    # st.write(f"Error fetching {t}: {e}") # Debug
                     pass
             return pd.DataFrame(data)
 
         if wl_names_ov and wl_tickers_ov:
             with st.spinner("Generating heatmap..."):
-                hm_df = get_heatmap_data(wl_tickers_ov)
+                hm_df = get_heatmap_data_v2(wl_tickers_ov)
                 if not hm_df.empty:
                     fig_hm = px.treemap(
                         hm_df, path=['Ticker'], values='Market Cap',
@@ -466,7 +469,7 @@ with tab_my:
                     fig_hm.data[0].texttemplate = "%{label}<br>%{customdata[0]:.2f}%"
                     st.plotly_chart(fig_hm, use_container_width=True)
                 else:
-                    st.info("Insufficient data for heatmap.")
+                    st.info("Insufficient data for heatmap. Check internet or ticker symbols.")
 
     # ---- WATCHLIST MANAGER ----
     with my_tabs[1]:
