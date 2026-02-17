@@ -146,9 +146,23 @@ TV_TICKER_MAP = {
     'XRP-USD': 'XRPUSD', 'DOGE-USD': 'DOGEUSD',
 }
 
-# --- Sidebar Controls ---
-st.sidebar.title("Configuration")
-raw_ticker = st.sidebar.text_input("Ticker", value="SPY").upper().strip()
+# --- Sidebar Branding & Navigation ---
+st.sidebar.markdown("""
+<div style='display: flex; align-items: center; gap: 10px; margin-bottom: 20px;'>
+    <h1 style='margin: 0; font-size: 22px;'>📊 VP Terminal</h1>
+</div>
+""", unsafe_allow_html=True)
+
+# --- MARKET SELECTION SECTION ---
+st.sidebar.subheader("Market Selection")
+
+# Use st.selectbox with a text_input fallback for better UX
+popular_tickers = ["SPY", "QQQ", "AAPL", "TSLA", "NVDA", "BTC-USD", "GC=F", "EURUSD=X"]
+if 'current_ticker' not in st.session_state:
+    st.session_state['current_ticker'] = "SPY"
+
+raw_ticker = st.sidebar.text_input("Ticker", value=st.session_state.get('last_ticker', "SPY")).upper().strip()
+st.session_state['last_ticker'] = raw_ticker
 
 # Translate for Yahoo Finance
 yahoo_ticker = YAHOO_TICKER_MAP.get(raw_ticker, raw_ticker)
@@ -160,20 +174,49 @@ tv_ticker = TV_TICKER_MAP.get(raw_ticker, raw_ticker)
 if yahoo_ticker != raw_ticker:
     st.sidebar.caption(f"Yahoo Finance: {yahoo_ticker}")
 
-# Quick select buttons
-st.sidebar.caption("Quick Select:")
-qr1, qr2, qr3, qr4 = st.sidebar.columns(4)
-for btn_label, col in [("SPY", qr1), ("QQQ", qr2), ("AAPL", qr3), ("TSLA", qr4)]:
-    if col.button(btn_label, key=f"q_{btn_label}", use_container_width=True):
-        st.session_state['quick_ticker'] = btn_label
-        st.rerun()
+# Quick Select Categories
+with st.sidebar.expander("Quick Select", expanded=True):
+    # Indices
+    st.markdown("**Indices**")
+    idx_cols = st.columns(3)
+    for btn, col in [("SPY", idx_cols[0]), ("QQQ", idx_cols[1]), ("IWM", idx_cols[2])]:
+        if col.button(btn, key=f"q_{btn}", use_container_width=True):
+            st.session_state['quick_ticker'] = btn
+            st.rerun()
+    
+    # Large Cap
+    st.markdown("**Tech**")
+    tech_cols = st.columns(3)
+    for btn, col in [("AAPL", tech_cols[0]), ("TSLA", tech_cols[1]), ("NVDA", tech_cols[2])]:
+        if col.button(btn, key=f"q_{btn}", use_container_width=True):
+            st.session_state['quick_ticker'] = btn
+            st.rerun()
 
-qr5, qr6, qr7, qr8 = st.sidebar.columns(4)
-for btn_label, col in [("Gold", qr5), ("NQ", qr6), ("ES", qr7), ("BTC", qr8)]:
-    map_to = {'Gold': 'XAUUSD', 'NQ': 'NQ', 'ES': 'ES', 'BTC': 'BTCUSD'}
-    if col.button(btn_label, key=f"q_{btn_label}", use_container_width=True):
-        st.session_state['quick_ticker'] = map_to[btn_label]
-        st.rerun()
+    # Commodities & Crypto
+    st.markdown("**Macro / Crypto**")
+    macro_cols = st.columns(3)
+    for btn, lbl, col in [("GC=F", "GOLD", macro_cols[0]), ("BTC-USD", "BTC", macro_cols[1]), ("ETH-USD", "ETH", macro_cols[2])]:
+        if col.button(lbl, key=f"q_{lbl}", use_container_width=True):
+            st.session_state['quick_ticker'] = btn
+            st.rerun()
+
+# Recent Tickers
+if 'recent_tickers' not in st.session_state:
+    st.session_state['recent_tickers'] = []
+
+if raw_ticker and raw_ticker not in st.session_state['recent_tickers']:
+    st.session_state['recent_tickers'] = [raw_ticker] + st.session_state['recent_tickers'][:4]
+
+if st.session_state['recent_tickers']:
+    st.sidebar.caption("Recent:")
+    rec_cols = st.sidebar.columns(len(st.session_state['recent_tickers']))
+    for i, t in enumerate(st.session_state['recent_tickers']):
+        if rec_cols[i].button(t, key=f"rec_{t}", use_container_width=True):
+            st.session_state['quick_ticker'] = t
+            st.rerun()
+
+st.sidebar.divider()
+st.sidebar.subheader("Analysis Settings")
 
 # Handle quick select
 if 'quick_ticker' in st.session_state:
@@ -186,12 +229,38 @@ ticker = yahoo_ticker  # Used for data loading (yfinance)
 period = st.sidebar.selectbox("Period", ["1d", "5d", "1mo", "3mo", "6mo", "1y"], index=2)
 interval = st.sidebar.selectbox("Interval", ["1m", "5m", "15m", "1h", "1d"], index=2)
 
-# Auto-refresh toggle (Market Analysis data only)
-st.sidebar.markdown("---")
+# --- PRICE STRIP ---
+@st.cache_data(ttl=5)
+def get_quick_quote(t):
+    try:
+        info = yf.Ticker(t).fast_info
+        price = info['last_price']
+        prev = info['previous_close']
+        change = (price - prev) / prev * 100
+        return price, change
+    except:
+        return None, None
+
+price_q, change_q = get_quick_quote(ticker if 'ticker' in dir() else raw_ticker)
+if price_q is not None:
+    clr = "#238636" if change_q >= 0 else "#da3633"
+    st.sidebar.markdown(f"""
+    <div style='background:#161b22;border:1px solid #21262d;border-radius:6px;padding:10px;margin:8px 0;'>
+        <div style='font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;'>Last Price</div>
+        <div style='font-size:20px;font-weight:600;'>${price_q:.2f}
+            <span style='font-size:13px;color:{clr};'>{change_q:+.2f}%</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+# --- DASHBOARD ACTIONS ---
+st.sidebar.divider()
+st.sidebar.subheader("Actions")
+
 auto_refresh = st.sidebar.checkbox("Live Refresh (10s)", value=False)
 if auto_refresh:
     st_autorefresh(interval=10000, limit=None, key="live_refresh")
-    st.sidebar.caption("Market Analysis data refreshes every 10 seconds")
+    st.sidebar.caption("Data refreshes every 10 seconds")
 
 # Initialize managers (used by My Dashboard tab)
 alert_engine = AlertsEngine()
@@ -205,12 +274,19 @@ def load_data(ticker, period, interval):
     engine.calculate_volume_profile()
     return engine
 
-if st.sidebar.button("Run Analysis"):
+if st.sidebar.button("Run Analysis", use_container_width=True, type="primary"):
     st.session_state['run'] = True
 
+# --- SIDEBAR FOOTER ---
+st.sidebar.markdown("---")
+import datetime
+_now = datetime.datetime.now()
+_hr = _now.hour
+_market = "Open" if 9 <= _hr < 16 else "Closed"
+st.sidebar.caption(f"{_now.strftime('%H:%M')} · Market {_market}")
+st.sidebar.markdown("<div style='font-size:10px;color:#484f58;'>VP Terminal v2.0</div>", unsafe_allow_html=True)
 
-# --- tabs ---
-# Define 8 consolidated tabs
+# --- TABS ---
 (tab_my, tab_tv, tab1, tab2, tab_analytics, tab_tools, tab_news, tab_research) = st.tabs([
     "Home", "Chart", "Analysis", "Order Flow",
     "Analytics", "Tools", "News", "Research"
@@ -223,11 +299,71 @@ with tab_my:
     notes_mgr = TickerNotes()
     user_prefs = UserPreferences()
 
-    my_tabs = st.tabs(["Watchlists", "Alerts", "Trade Journal",
+    my_tabs = st.tabs(["Overview", "Watchlists", "Alerts", "Trade Journal",
                         "Ticker Notes", "Export", "Preferences"])
 
-    # ---- WATCHLIST MANAGER ----
+    # ---- OVERVIEW (Command Center) ----
     with my_tabs[0]:
+        # Summary Cards Row
+        active_alerts = alert_engine.get_active_alerts()
+        triggered_alerts = alert_engine.get_triggered_alerts()
+        journal_stats = journal.get_stats()
+
+        ov1, ov2, ov3, ov4 = st.columns(4)
+        ov1.metric("Active Alerts", len(active_alerts) if active_alerts else 0)
+        ov2.metric("Triggered Today", len(triggered_alerts) if triggered_alerts else 0)
+        ov3.metric("Win Rate", f"{journal_stats.get('win_rate', 0)}%")
+        ov4.metric("Total Trades", journal_stats.get('total_trades', 0))
+
+        st.markdown("---")
+
+        # Watchlist Sparklines
+        st.markdown("### Watchlist Overview")
+        wl_names_ov = wl_mgr.get_names()
+        if wl_names_ov:
+            selected_wl = st.selectbox("Watchlist", wl_names_ov, key="ov_wl_select")
+            wl_tickers_ov = wl_mgr.get_tickers(selected_wl)
+
+            if wl_tickers_ov:
+                spark_cols = st.columns(min(len(wl_tickers_ov), 4))
+                for i, wt in enumerate(wl_tickers_ov[:8]):
+                    col_idx = i % min(len(wl_tickers_ov), 4)
+                    with spark_cols[col_idx]:
+                        try:
+                            yf_t = YAHOO_TICKER_MAP.get(wt.upper(), wt.upper())
+                            spark_data = yf.download(yf_t, period="5d", interval="1h", progress=False)
+                            if not spark_data.empty:
+                                close = spark_data['Close']
+                                if hasattr(close, 'columns'):
+                                    close = close.iloc[:, 0]
+                                last_p = float(close.iloc[-1])
+                                first_p = float(close.iloc[0])
+                                chg = (last_p - first_p) / first_p * 100
+                                clr_s = "#238636" if chg >= 0 else "#da3633"
+
+                                fig_spark = go.Figure(go.Scatter(
+                                    y=close.values, mode='lines',
+                                    line=dict(color=clr_s, width=1.5),
+                                    fill='tozeroy',
+                                    fillcolor=f"rgba({'35,134,54' if chg >= 0 else '218,54,51'},0.1)"
+                                ))
+                                fig_spark.update_layout(
+                                    height=80, margin=dict(l=0,r=0,t=0,b=0),
+                                    xaxis=dict(visible=False), yaxis=dict(visible=False),
+                                    template='plotly_dark', paper_bgcolor='rgba(0,0,0,0)',
+                                    plot_bgcolor='rgba(0,0,0,0)'
+                                )
+                                st.markdown(f"**{wt}** · ${last_p:.2f} <span style='color:{clr_s};font-size:12px;'>{chg:+.1f}%</span>", unsafe_allow_html=True)
+                                st.plotly_chart(fig_spark, use_container_width=True, key=f"spark_{wt}")
+                            else:
+                                st.caption(f"{wt}: No data")
+                        except Exception:
+                            st.caption(f"{wt}: Error")
+        else:
+            st.info("No watchlists yet. Create one in the Watchlists tab.")
+
+    # ---- WATCHLIST MANAGER ----
+    with my_tabs[1]:
         st.markdown("### Watchlist Manager")
         wl_names_my = wl_mgr.get_names()
 
@@ -260,7 +396,7 @@ with tab_my:
                     st.rerun()
 
     # ---- ALERTS MANAGER ----
-    with my_tabs[1]:
+    with my_tabs[2]:
         st.markdown("### Alerts Manager")
 
         al_col1, al_col2 = st.columns(2)
@@ -303,7 +439,7 @@ with tab_my:
                 st.caption("No triggered alerts yet.")
 
     # ---- TRADE JOURNAL ----
-    with my_tabs[2]:
+    with my_tabs[3]:
         st.markdown("### Trade Journal")
 
         # Performance stats
@@ -382,7 +518,7 @@ with tab_my:
                 st.rerun()
 
     # ---- TICKER NOTES ----
-    with my_tabs[3]:
+    with my_tabs[4]:
         st.markdown("### Ticker Notes")
         st.caption("Save personal analysis notes for any ticker. These persist across sessions.")
 
@@ -410,7 +546,7 @@ with tab_my:
                     st.write(nt)
 
     # ---- EXPORT CENTER ----
-    with my_tabs[4]:
+    with my_tabs[5]:
         st.markdown("### Export Center")
         st.caption("Download your data as CSV files.")
 
@@ -444,7 +580,7 @@ with tab_my:
                 st.caption("Run analysis first to export VP levels.")
 
     # ---- PREFERENCES ----
-    with my_tabs[5]:
+    with my_tabs[6]:
         st.markdown("### User Preferences")
         st.caption("Set your defaults. These are saved locally and persist across sessions.")
 
@@ -553,6 +689,18 @@ with tab1:
             col3.metric("Migration", "N/A")
     
         col4.markdown(f"**Position:** :{pos_color}[{metrics['position']}]")
+
+        # Level Export
+        with st.expander("Key Levels", expanded=False):
+            lev_cols = st.columns(3)
+            lev_cols[0].metric("POC", f"${metrics['poc']:.2f}")
+            lev_cols[1].metric("VAH", f"${metrics['vah']:.2f}")
+            lev_cols[2].metric("VAL", f"${metrics['val']:.2f}")
+            levels_txt = f"POC: {metrics['poc']:.2f} | VAH: {metrics['vah']:.2f} | VAL: {metrics['val']:.2f}"
+            st.code(levels_txt, language=None)
+
+        # Toast notification
+        st.toast(f"Analysis complete for {ticker}", icon="✅")
 
         # 2. Charts
         # Create subplots: Price on top, Volume on bottom
