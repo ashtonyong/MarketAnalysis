@@ -49,9 +49,13 @@ from insider_tracker import render_insider_tracker
 from liquidity_heatmap import render_liquidity_heatmap
 from vol_surface import render_vol_surface
 from factor_model import render_factor_model
+from dividend_tracker import render_dividend_tracker
+from peer_comparison import render_peer_comparison
+from price_targets import render_price_targets
+from range_dashboard import render_range_dashboard
 import numpy as np
 
-st.set_page_config(layout="wide", page_title="VP Terminal v2.2")
+st.set_page_config(layout="wide", page_title="VP Terminal v2.3")
 
 # --- Minimal Dark Theme CSS ---
 st.markdown("""
@@ -364,12 +368,12 @@ _now = datetime.now()
 _hr = _now.hour
 _market = "Open" if 9 <= _hr < 16 else "Closed"
 st.sidebar.caption(f"{_now.strftime('%H:%M')} · Market {_market}")
-st.sidebar.markdown("<div style='font-size:10px;color:#484f58;'>VP Terminal v2.2</div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='font-size:10px;color:#484f58;'>VP Terminal v2.3</div>", unsafe_allow_html=True)
 
 # --- TABS ---
-(tab_my, tab_tv, tab_events, tab1, tab2, tab_sess, tab_mtf, tab_beta, tab_earn, tab_short, tab_fvg, tab_struct, tab_val, tab_screen, tab_risk, tab_regime, tab_garch, tab_insider, tab_heat, tab_surface, tab_factor, tab_analytics, tab_tools, tab_news, tab_research) = st.tabs([
+(tab_my, tab_tv, tab_events, tab1, tab2, tab_sess, tab_mtf, tab_beta, tab_earn, tab_short, tab_fvg, tab_struct, tab_val, tab_screen, tab_risk, tab_regime, tab_garch, tab_insider, tab_heat, tab_surface, tab_factor, tab_analytics, tab_tools, tab_news, tab_research, tab_div, tab_peers, tab_targets, tab_range) = st.tabs([
     "Home", "Chart", "Events", "Analysis", "Order Flow",
-    "Session Ranges", "MTF Confluence", "Beta & Correlation", "Earnings Vol", "Short Interest", "FVG Scanner", "Market Structure", "Valuation", "Screener", "Risk", "Regime Backtest", "Volatility", "Insiders", "Heatmap", "Vol Surface", "Factor Model", "Analytics", "Tools", "News", "Research"
+    "Session Ranges", "MTF Confluence", "Beta & Correlation", "Earnings Vol", "Short Interest", "FVG Scanner", "Market Structure", "Valuation", "Screener", "Risk", "Regime Backtest", "Volatility", "Insiders", "Heatmap", "Vol Surface", "Factor Model", "Analytics", "Tools", "News", "Research", "Dividends", "Peers", "Targets", "Range"
 ])
 
 # --- TAB: HOME ---
@@ -1903,3 +1907,15 @@ with tab_news:
                 </script>
             """, height=0)
 
+
+with tab_div:
+    render_dividend_tracker(ticker)
+
+with tab_peers:
+    render_peer_comparison(ticker)
+
+with tab_targets:
+    render_price_targets(ticker)
+
+with tab_range:
+    render_range_dashboard(ticker)
