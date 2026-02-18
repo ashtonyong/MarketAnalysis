@@ -161,7 +161,7 @@ class SidebarWidgets:
     def render_compact_earnings():
         with st.sidebar:
             col_h, col_a = st.columns([6, 1])
-            col_h.markdown("### 📅 Earnings")
+            col_h.markdown("### Earnings Calendar")
             if col_a.button(">", key="nav_earn_mini"):
                  st.components.v1.html("""
                     <script>
@@ -170,71 +170,43 @@ class SidebarWidgets:
                     </script>
                 """, height=0)
 
-            # 1. Get Tickers (Watchlist + Magn. 7)
-            watchlist = st.session_state.get('watchlist', ['SPY', 'QQQ', 'IWM'])
-            major_tech = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'TSLA']
-            all_tickers = list(set(watchlist + major_tech))
-            
+            # Use new shared data fetcher
             try:
-                import yfinance as yf
-                from datetime import datetime
+                from components.earnings_data import EarningsData, MARKET_TICKERS
                 
-                upcoming_earnings = []
-                today = datetime.now()
+                # We need to fetch data. Since it's cached, we can just call it.
+                # However, for sidebar speed, we might want fewer days? 
+                # Let's stick to the cached 30 day fetch
                 
-                # Fetch data (simplified for sidebar speed)
-                for ticker in all_tickers:
-                    try:
-                        t = yf.Ticker(ticker)
-                        # Quick check on calendar
-                        cal = t.calendar
-                        if cal is not None and not cal.empty:
-                            ern_dates = cal.get('Earnings Date')
-                            if ern_dates is None:
-                                ern_dates = cal.iloc[0] if not cal.empty else None
-                                
-                            if ern_dates is not None:
-                                next_date = None
-                                if isinstance(ern_dates, list): next_date = ern_dates[0]
-                                elif hasattr(ern_dates, 'values'): next_date = ern_dates.values[0]
-                                else: next_date = ern_dates
-                                
-                                if next_date:
-                                    nd = pd.to_datetime(next_date)
-                                    days_diff = (nd - today).days
-                                    
-                                    if 0 <= days_diff <= 30: # Only next 30 days for sidebar
-                                        est = cal.get('Earnings Average')
-                                        if est is None: 
-                                            est = cal.get('EPS Estimate', [None])[0] if 'EPS Estimate' in cal else None
-                                        
-                                        upcoming_earnings.append({
-                                            "Ticker": ticker,
-                                            "Day": nd.strftime('%m-%d'),
-                                            "Days": days_diff
-                                        })
-                    except:
-                        continue
+                # Fetch data
+                df = EarningsData.fetch_upcoming_earnings(days_ahead=30)
                 
-                if upcoming_earnings:
-                    # Sort by soonest
-                    upcoming_earnings.sort(key=lambda x: x['Days'])
+                if df is not None and not df.empty:
+                    # Filter for next 14 days for sidebar to keep it compact
+                    df = df.head(8) 
                     
-                    for item in upcoming_earnings[:5]: # Show top 5
-                        color = "#e6edf3" if item['Days'] > 3 else "#d29922" # Yellow if within 3 days
+                    for _, row in df.iterrows():
+                        # Style: Date on left (FEB 18), Ticker on right
+                        month = row['Month']
+                        day = row['Day']
+                        ticker = row['Symbol']
+                        
                         st.markdown(f"""
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-size: 13px;">
-                            <span style="font-weight: 600;">{item['Ticker']}</span>
-                            <span style="color: #8b949e;">{item['Day']}</span>
-                            <span style="color: {color}; font-size: 11px; background: rgba(56,139,253,0.1); padding: 1px 6px; border-radius: 10px;">
-                                {item['Days']}d
-                            </span>
+                        <div style="display: flex; align-items: center; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #21262d;">
+                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 40px; margin-right: 12px;">
+                                <span style="font-size: 10px; font-weight: 600; color: #8b949e; text-transform: uppercase;">{month}</span>
+                                <span style="font-size: 16px; font-weight: 700; color: #e6edf3; line-height: 1;">{day}</span>
+                            </div>
+                            <div style="display: flex; flex-direction: column;">
+                                <span style="font-size: 14px; font-weight: 600; color: #58a6ff;">{ticker}</span>
+                                <span style="font-size: 11px; color: #8b949e;">EPS Est: ${row['EPS Est']}</span>
+                            </div>
                         </div>
                         """, unsafe_allow_html=True)
                 else:
-                    st.caption("No earnings in next 30 days.")
+                    st.caption("No upcoming earnings found.")
 
             except Exception as e:
-                st.caption("Earnings data unavailable")
+                st.caption(f"Earnings unavailable: {str(e)}")
             
             st.markdown("---")
