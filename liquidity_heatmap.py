@@ -15,14 +15,27 @@ def build_volume_matrix(ticker: str, period: str, interval: str):
         return None, None, None
 
     # Build price grid — finer resolution (ATR/20 not ATR/10)
-    atr = (df['High'] - df['Low']).mean()
-    if atr == 0: atr = 0.01 # Guard against zero division
+    atr_series = (df['High'] - df['Low'])
+    atr = atr_series.mean()
+    
+    # Handle Series vs Scalar
+    if isinstance(atr, (pd.Series, np.ndarray)):
+        atr = atr.item()
+        
+    if atr <= 0: atr = 0.01 # Guard against zero division
     
     grid_step = atr / 20
-    if grid_step == 0: grid_step = 0.01
+    if grid_step <= 0: grid_step = 0.01
     
-    price_min = df['Low'].min() - atr
-    price_max = df['High'].max() + atr
+    start_price = df['Low'].min() - atr
+    end_price = df['High'].max() + atr
+    
+    # Ensure scalars
+    if isinstance(start_price, (pd.Series, np.ndarray)): start_price = start_price.item()
+    if isinstance(end_price, (pd.Series, np.ndarray)): end_price = end_price.item()
+    
+    price_min = float(start_price)
+    price_max = float(end_price)
     
     # Arange can be empty if step is wrong, safely handle
     try:
