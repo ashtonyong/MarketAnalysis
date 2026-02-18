@@ -117,15 +117,23 @@ def render_econ_impact_overlay(ticker: str):
             # Color coding
             color = "red" if "FOMC" in e['event'] else "orange" if "CPI" in e['event'] else "blue"
             
-            fig.add_vline(
-                x=date_str, 
-                line_width=1, 
-                line_dash="dash", 
-                line_color=color,
-                annotation_text=e['event'],
-                annotation_position="top left",
-                annotation_font_size=10,
-                annotation_font_color=color
+            # Use add_shape and add_annotation manually to avoid known Plotly add_vline TypeError with dates
+            fig.add_shape(
+                type="line",
+                x0=date_str, x1=date_str,
+                y0=0, y1=1,
+                yref="paper",
+                line=dict(color=color, width=1, dash="dash")
+            )
+            fig.add_annotation(
+                x=date_str,
+                y=1,
+                yref="paper",
+                text=e['event'],
+                showarrow=False,
+                font=dict(color=color, size=10),
+                xanchor="left",
+                yanchor="top"
             )
             
         fig.update_layout(
