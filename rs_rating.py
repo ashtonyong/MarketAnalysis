@@ -37,7 +37,7 @@ class RSRating:
         - 12 Month: 20%
         """
         df = self.fetch_data(period="2y") # Fetch enough for calculations
-        if df.empty: return 0, df
+        if df.empty: return 0, df, {}
         
         # Calculate price changes over specific periods
         # We need current price vs price N months ago
