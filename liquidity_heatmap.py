@@ -9,6 +9,11 @@ import streamlit as st
 def build_volume_matrix(ticker: str, period: str, interval: str):
     """Fetches OHLCV data and builds the raw volume matrix."""
     df = yf.download(ticker, period=period, interval=interval, progress=False)
+    
+    # Flatten MultiIndex columns (Fix for yfinance returning (Price, Ticker))
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.get_level_values(0)
+        
     df.dropna(inplace=True)
 
     if df.empty or len(df) < 10:
@@ -125,7 +130,11 @@ def render_liquidity_heatmap(ticker: str):
         # Actually build_volume_matrix returns matrix not df.
         # Let's just re-download cleanly or just trust user code.
         # User code: yf.download(ticker, period=period, interval=interval, progress=False)['Close'].values
-        price_data = yf.download(ticker, period=period, interval=interval, progress=False)['Close'].values
+        df_price = yf.download(ticker, period=period, interval=interval, progress=False)
+        if isinstance(df_price.columns, pd.MultiIndex):
+            df_price.columns = df_price.columns.get_level_values(0)
+            
+        price_data = df_price['Close'].values
     except:
         price_data = []
 
