@@ -33,9 +33,25 @@ from trade_journal import TradeJournal, TickerNotes, UserPreferences
 from backtester import BacktestEngine
 from quant_engine import MonteCarloSimulator, RegimeDetector, ZScoreCalculator
 from strategies import BaseStrategy
+from session_range import render_session_range
+from mtf_confluence import render_mtf_confluence
+from rolling_beta import render_rolling_beta
+from earnings_volatility import render_earnings_volatility
+from short_interest import render_short_interest
+from fvg_scanner import render_fvg_scanner
+from market_structure import render_market_structure
+from dcf_engine import render_dcf_engine
+from fundamental_screener import render_fundamental_screener
+from portfolio_risk import render_portfolio_risk
+from regime_backtest import render_regime_backtest
+from garch_forecaster import render_garch_forecaster
+from insider_tracker import render_insider_tracker
+from liquidity_heatmap import render_liquidity_heatmap
+from vol_surface import render_vol_surface
+from factor_model import render_factor_model
 import numpy as np
 
-st.set_page_config(layout="wide", page_title="Volume Profile Terminal")
+st.set_page_config(layout="wide", page_title="VP Terminal v2.2")
 
 # --- Minimal Dark Theme CSS ---
 st.markdown("""
@@ -346,12 +362,12 @@ _now = datetime.now()
 _hr = _now.hour
 _market = "Open" if 9 <= _hr < 16 else "Closed"
 st.sidebar.caption(f"{_now.strftime('%H:%M')} · Market {_market}")
-st.sidebar.markdown("<div style='font-size:10px;color:#484f58;'>VP Terminal v2.1 • Fixed</div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='font-size:10px;color:#484f58;'>VP Terminal v2.2</div>", unsafe_allow_html=True)
 
 # --- TABS ---
-(tab_my, tab_tv, tab_events, tab1, tab2, tab_analytics, tab_tools, tab_news, tab_research) = st.tabs([
+(tab_my, tab_tv, tab_events, tab1, tab2, tab_sess, tab_mtf, tab_beta, tab_earn, tab_short, tab_fvg, tab_struct, tab_val, tab_screen, tab_risk, tab_regime, tab_garch, tab_insider, tab_heat, tab_surface, tab_factor, tab_analytics, tab_tools, tab_news, tab_research) = st.tabs([
     "Home", "Chart", "Events", "Analysis", "Order Flow",
-    "Analytics", "Tools", "News", "Research"
+    "Session Ranges", "MTF Confluence", "Beta & Correlation", "Earnings Vol", "Short Interest", "FVG Scanner", "Market Structure", "Valuation", "Screener", "Risk", "Regime Backtest", "Volatility", "Insiders", "Heatmap", "Vol Surface", "Factor Model", "Analytics", "Tools", "News", "Research"
 ])
 
 # --- TAB: HOME ---
@@ -1143,6 +1159,76 @@ with tab2:
 
                 except Exception as e:
                     st.error(f"Order Flow Error: {e}")
+
+# --- TAB: SESSION RANGES ---
+with tab_sess:
+    if not data_loaded:
+        st.info("Run Analysis to load ticker data, then view Session Ranges.")
+    else:
+        render_session_range(ticker)
+
+# --- TAB: MTF CONFLUENCE ---
+with tab_mtf:
+    if not data_loaded:
+        st.info("Run Analysis to load ticker data, then view MTF Confluence.")
+    else:
+        render_mtf_confluence(ticker)
+
+# --- TAB: ROLLING BETA ---
+with tab_beta:
+    render_rolling_beta(ticker)
+
+# --- TAB: EARNINGS VOLATILITY ---
+with tab_earn:
+    render_earnings_volatility(ticker)
+
+# --- TAB: SHORT INTEREST ---
+with tab_short:
+    render_short_interest(ticker)
+
+# --- TAB: FVG SCANNER ---
+with tab_fvg:
+    render_fvg_scanner(ticker)
+
+# --- TAB: MARKET STRUCTURE ---
+with tab_struct:
+    render_market_structure(ticker)
+
+# --- TAB: VALUATION (DCF) ---
+with tab_val:
+    render_dcf_engine(ticker)
+
+# --- TAB: SCREENER ---
+with tab_screen:
+    render_fundamental_screener(ticker)
+
+# --- TAB: PORTFOLIO RISK ---
+with tab_risk:
+    render_portfolio_risk(ticker)
+
+# --- TAB: REGIME BACKTEST ---
+with tab_regime:
+    render_regime_backtest(ticker)
+
+# --- TAB: GARCH VOLATILITY ---
+with tab_garch:
+    render_garch_forecaster(ticker)
+
+# --- TAB: INSIDER TRADING ---
+with tab_insider:
+    render_insider_tracker(ticker)
+
+# --- TAB: LIQUIDITY HEATMAP ---
+with tab_heat:
+    render_liquidity_heatmap(ticker)
+
+# --- TAB: VOLATILITY SURFACE ---
+with tab_surface:
+    render_vol_surface(ticker)
+
+# --- TAB: FACTOR MODEL ---
+with tab_factor:
+    render_factor_model(ticker)
 
 # --- TAB: ANALYTICS (Advanced + Multi-TF + Correlation + Watchlist) ---
 with tab_analytics:
