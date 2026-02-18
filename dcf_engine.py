@@ -11,6 +11,11 @@ def fetch_financials(ticker):
         t = yf.Ticker(ticker)
         info = t.info
         
+        # Heuristic to check if Equity
+        # If ticker contains '=' (Futures/Forexy) or is 'BTC-USD' etc.
+        if '=' in ticker or '-USD' in ticker:
+            return None, "DCF is only applicable to Equities (Stocks). Please select a stock ticker (e.g., AAPL, TSLA)."
+
         # Get Cash Flow
         cf = t.cashflow
         bs = t.balance_sheet

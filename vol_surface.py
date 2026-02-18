@@ -131,3 +131,4 @@ def render_vol_surface(ticker):
                 
             else:
                 st.error("No options data found or ticker does not have options.")
+                st.info("Try selecting a major stock or ETF (e.g., SPY, QQQ, AAPL, NVDA). Futures/Forex often lack options data in this feed.")

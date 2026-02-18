@@ -13,7 +13,13 @@ def fetch_vol_data(ticker, period="2y"):
         if df.empty: return pd.DataFrame()
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
-        return df[['Close', 'Adj Close']]
+        # Helper to get best price column
+        cols = df.columns
+        if 'Adj Close' in cols:
+            return df[['Close', 'Adj Close']]
+        else:
+            df['Adj Close'] = df['Close'] # Fallback
+            return df[['Close', 'Adj Close']]
     except Exception as e:
         st.error(f"Error fetching data: {e}")
         return pd.DataFrame()
