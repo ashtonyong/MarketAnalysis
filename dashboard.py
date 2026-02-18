@@ -44,7 +44,7 @@ from dcf_engine import render_dcf_engine
 from fundamental_screener import render_fundamental_screener
 from portfolio_risk import render_portfolio_risk
 from regime_backtest import render_regime_backtest
-from garch_forecaster import render_garch_forecaster
+
 from insider_tracker import render_insider_tracker
 from liquidity_heatmap import render_liquidity_heatmap
 from vol_surface import render_vol_surface
@@ -53,6 +53,18 @@ from dividend_tracker import render_dividend_tracker
 from peer_comparison import render_peer_comparison
 from price_targets import render_price_targets
 from range_dashboard import render_range_dashboard
+from econ_impact_overlay import render_econ_impact_overlay
+from setup_scanner import render_setup_scanner
+from prepost_tracker import render_prepost_tracker
+from sentiment_timeline import render_sentiment_timeline
+from rs_rating import render_rs_rating
+from analyst_ratings import render_analyst_ratings
+from valuation_history import render_valuation_history
+from institutional_tracker import render_institutional_tracker
+from pairs_trading import render_pairs_trading
+from backtest_engine import render_regime_backtest
+from garch_forecaster import render_garch_forecaster
+from options_analytics import render_options_analytics
 import numpy as np
 
 st.set_page_config(layout="wide", page_title="VP Terminal v2.3")
@@ -371,9 +383,9 @@ st.sidebar.caption(f"{_now.strftime('%H:%M')} · Market {_market}")
 st.sidebar.markdown("<div style='font-size:10px;color:#484f58;'>VP Terminal v2.3</div>", unsafe_allow_html=True)
 
 # --- TABS ---
-(tab_my, tab_tv, tab_events, tab1, tab2, tab_sess, tab_mtf, tab_beta, tab_earn, tab_short, tab_fvg, tab_struct, tab_val, tab_screen, tab_risk, tab_regime, tab_garch, tab_insider, tab_heat, tab_surface, tab_factor, tab_analytics, tab_tools, tab_news, tab_research, tab_div, tab_peers, tab_targets, tab_range) = st.tabs([
+(tab_my, tab_tv, tab_events, tab1, tab2, tab_sess, tab_mtf, tab_beta, tab_earn, tab_short, tab_fvg, tab_struct, tab_val, tab_screen, tab_risk, tab_regime, tab_garch, tab_insider, tab_heat, tab_surface, tab_factor, tab_analytics, tab_tools, tab_news, tab_research, tab_div, tab_peers, tab_targets, tab_range, tab_econ, tab_scan, tab_prepost, tab_rs, tab_analyst, tab_val_hist, tab_inst, tab_pairs, tab_opts) = st.tabs([
     "Home", "Chart", "Events", "Analysis", "Order Flow",
-    "Session Ranges", "MTF Confluence", "Beta & Correlation", "Earnings Vol", "Short Interest", "FVG Scanner", "Market Structure", "Valuation", "Screener", "Risk", "Regime Backtest", "Volatility", "Insiders", "Heatmap", "Vol Surface", "Factor Model", "Analytics", "Tools", "News", "Research", "Dividends", "Peers", "Targets", "Range"
+    "Session Ranges", "MTF Confluence", "Beta & Correlation", "Earnings Vol", "Short Interest", "FVG Scanner", "Market Structure", "Valuation", "Screener", "Risk", "Regime Backtest", "Volatility", "Insiders", "Heatmap", "Vol Surface", "Factor Model", "Analytics", "Tools", "News", "Research", "Dividends", "Peers", "Targets", "Range", "Econ Overlay", "Scanner", "Pre/Post", "RS Rating", "Analyst Ratings", "Valuation History", "Institutional", "Pairs Trading", "Options Chain"
 ])
 
 # --- TAB: HOME ---
@@ -1858,54 +1870,8 @@ with tab_research:
                         st.error(f"Options Error: {e}")
 
 with tab_news:
-    news_sub = st.tabs(["News Feed", "Economic Calendar"])
-    with news_sub[0]:
-        st.subheader("News & Sentiment")
-        st.caption("Live news from Google News (Reuters, Bloomberg, CNBC, etc.) with sentiment scoring.")
+    render_sentiment_timeline(ticker)
 
-        if st.button("Load News", key='news_load'):
-            with st.spinner("Fetching news..."):
-                try:
-                    nf = NewsFeedAnalyzer(ticker)
-                    result = nf.get_sentiment_summary()
-
-                    # Summary metrics
-                    nc1, nc2, nc3, nc4, nc5 = st.columns(5)
-                    nc1.metric("Overall Sentiment", result['overall_sentiment'])
-                    nc2.metric("Score", f"{result['avg_score']:+.2f}")
-                    nc3.metric("Positive", result['positive_count'])
-                    nc4.metric("Negative", result['negative_count'])
-                    nc5.metric("Neutral", result['neutral_count'])
-
-                    # Articles
-                    st.markdown("---")
-                    for article in result['articles']:
-                        sent = article['sentiment']
-                        sent_emoji = "🟢" if sent == 'Positive' else "🔴" if sent == 'Negative' else "⚪"
-                        st.markdown(
-                            f"{sent_emoji} **{article['title']}**  \n"
-                            f"*{article['publisher']}* · {article['age']}  "
-                            f"[Read →]({article['link']})"
-                        )
-                        st.markdown("---")
-
-                    if not result['articles']:
-                        st.info("No news articles found. Try a different ticker.")
-
-                except Exception as e:
-                    st.error(f"News Error: {e}")
-
-
-    with news_sub[1]:
-        st.subheader("Economic Calendar")
-        st.info("The full Economic Calendar and Earnings schedule has moved to the dedicated **Events** tab.")
-        if st.button("Go to Events Tab ➔", key="news_to_events"):
-            st.components.v1.html("""
-                <script>
-                const tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
-                if (tabs.length > 2) tabs[2].click();
-                </script>
-            """, height=0)
 
 
 with tab_div:
@@ -1919,3 +1885,30 @@ with tab_targets:
 
 with tab_range:
     render_range_dashboard(ticker)
+
+with tab_econ:
+    render_econ_impact_overlay(ticker)
+
+with tab_scan:
+    render_setup_scanner(popular_tickers)
+
+with tab_prepost:
+    render_prepost_tracker(popular_tickers if 'popular_tickers' in locals() else ['SPY', 'QQQ', 'NVDA', 'TSLA'])
+
+with tab_rs:
+    render_rs_rating(ticker)
+
+with tab_analyst:
+    render_analyst_ratings(ticker)
+
+with tab_val_hist:
+    render_valuation_history(ticker)
+
+with tab_inst:
+    render_institutional_tracker(ticker)
+
+with tab_pairs:
+    render_pairs_trading(ticker)
+
+with tab_opts:
+    render_options_analytics(ticker)
