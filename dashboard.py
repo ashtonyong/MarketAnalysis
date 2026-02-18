@@ -303,6 +303,9 @@ if price_q is not None:
     </div>
     """, unsafe_allow_html=True)
 
+if st.sidebar.button("Run Analysis", use_container_width=True, type="primary"):
+    st.session_state['run'] = True
+
 # --- DASHBOARD ACTIONS ---
 st.sidebar.divider()
 st.sidebar.subheader("Actions")
@@ -353,8 +356,7 @@ def load_data(ticker, period, interval):
     engine.calculate_volume_profile()
     return engine
 
-if st.sidebar.button("Run Analysis", use_container_width=True, type="primary"):
-    st.session_state['run'] = True
+
 
 # --- SIDEBAR FOOTER ---
 st.sidebar.markdown("---")
