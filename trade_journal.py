@@ -74,12 +74,21 @@ class TradeJournal:
                 'profit_factor': 0, 'equity_curve': [],
             }
 
-        wins = [t for t in self.trades if t['pnl'] > 0]
-        losses = [t for t in self.trades if t['pnl'] < 0]
-        pnls = [t['pnl'] for t in self.trades]
+        try:
+            wins = [t for t in self.trades if t.get('pnl', 0) > 0]
+            losses = [t for t in self.trades if t.get('pnl', 0) < 0]
+            pnls = [t.get('pnl', 0) for t in self.trades]
 
-        total_wins = sum(t['pnl'] for t in wins) if wins else 0
-        total_losses = abs(sum(t['pnl'] for t in losses)) if losses else 0
+            total_wins = sum(t['pnl'] for t in wins) if wins else 0
+            total_losses = abs(sum(t['pnl'] for t in losses)) if losses else 0
+        except Exception:
+            return {
+                'total_trades': len(self.trades),
+                'wins': 0, 'losses': 0, 'win_rate': 0,
+                'total_pnl': 0, 'avg_pnl': 0,
+                'best_trade': 0, 'worst_trade': 0,
+                'profit_factor': 0, 'equity_curve': []
+            }
 
         # Equity curve
         equity = []
