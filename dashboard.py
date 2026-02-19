@@ -6,10 +6,12 @@ import pandas as pd
 from datetime import datetime
 import time
 
-# --- STYLES & CONFIG ---
-st.set_page_config(layout="wide", page_title="VP Terminal v2.3 Pro", initial_sidebar_state="expanded")
-import styles
-st.markdown(styles.get_css(), unsafe_allow_html=True)
+    # --- STYLES & CONFIG ---
+    st.set_page_config(layout="wide", page_title="VP Terminal v2.3 Pro (Live)", initial_sidebar_state="expanded")
+    import styles
+    import time
+    # Force reload of CSS by treating it as dynamic injection
+    st.markdown(styles.get_css(), unsafe_allow_html=True)
 
 # --- IMPORTS (Keep all existing) ---
 from components.sidebar_widgets import SidebarWidgets
