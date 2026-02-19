@@ -207,8 +207,8 @@ def get_css():
             padding: 0;
         }
         
-        /* Rail Items */
-        .rail-btn, div.row-widget.stButton > button {
+        /* Rail Items - Targeted as best as possible */
+        [data-testid="stSidebar"] [data-testid="stHorizontalBlock"] button {
             width: 42px !important; 
             height: 36px !important;
             border-radius: 6px !important;
@@ -216,30 +216,29 @@ def get_css():
             color: var(--ts) !important;
             cursor: pointer;
             margin-bottom: 8px;
-            transition: all 0.1s;
             font-size: 10px !important;
             font-weight: 700 !important;
-            letter-spacing: 0.5px !important;
             padding: 0 !important;
         }
-        div.row-widget.stButton > button:hover { background: var(--s3) !important; color: var(--tp) !important; border-color: var(--border2) !important; }
-        div.row-widget.stButton > button:focus { background: var(--blue-d) !important; color: var(--blue) !important; border-color: var(--blue) !important; }
         
-        /* Specific override for the Refresh button at bottom of rail */
-        div.row-widget.stButton > button[kind="secondary"] {
-             /* Target specific buttons if needed, but the above general rule works for the rail context if isolated */
+        /* Panel Items - Ensure they are NOT affected */
+        [data-testid="stSidebar"] [data-testid="stVerticalBlock"] button {
+             width: 100% !important;
+             justify-content: flex-start !important;
+             height: auto !important;
+             padding: 8px 14px !important;
+             font-size: 12px !important;
+             font-weight: 400 !important;
         }
-        
-        /* Nav Items */
-        .nav-btn {
-            padding: 8px 14px;
-            font-size: 12px; color: var(--ts);
-            cursor: pointer;
-            border-left: 2px solid transparent;
-            display: flex; align-items: center; justify-content: space-between;
+
+        /* Nav Item Active State Override */
+        [data-testid="stSidebar"] button[kind="primary"] {
+            background: var(--blue-d) !important;
+            border-left: 2px solid var(--blue) !important;
+            border: none;
+            color: var(--blue) !important;
+            font-weight: 500 !important;
         }
-        .nav-btn:hover { background: rgba(255,255,255,0.02); color: var(--tp); }
-        .nav-btn.active { background: var(--blue-d); border-left-color: var(--blue); color: var(--blue); font-weight: 500; }
         
         /* Animations */
         @keyframes fadeSlide { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
