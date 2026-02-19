@@ -195,7 +195,12 @@ def set_view(view, cat=None):
 
 # --- VIEW ROUTER & RENDERING ---
 ticker = st.session_state['current_ticker']
+# Force lowercase to fix legacy session state mismatch (e.g. "Home" -> "home")
+st.session_state['nav_view'] = st.session_state['nav_view'].lower()
 nav_view = st.session_state['nav_view']
+
+# DEBUG: Show current view state to verify rendering
+# st.error(f"DEBUG: Current View = '{nav_view}' | Ticker = '{ticker}'")
 
 # 1. CORE
 if nav_view == "home":
