@@ -198,6 +198,10 @@ elif nav_category == "Institutional":
     nav_view = st.sidebar.radio("Tracking", 
         ["Institutional Ownership", "Insider Trading", "Short Interest", "Sentiment Timeline"])
 
+elif nav_category == "Platform-Wide":
+    nav_view = st.sidebar.radio("Features", 
+        ["Watchlist Scoring", "AI Report Generator"])
+
 elif nav_category == "Quant & Strategy":
     nav_view = st.sidebar.radio("Models", 
         ["Regime Backtest", "Pairs Trading", "Rolling Beta", "Factor Model", "Correlation"])
@@ -366,7 +370,80 @@ elif nav_category == "Institutional":
     elif nav_view == "Short Interest": render_short_interest(ticker)
     elif nav_view == "Sentiment Timeline": render_sentiment_timeline(ticker)
 
-# 7. QUANT & STRATEGY
+# 7. PLATFORM-WIDE
+elif nav_category == "Platform-Wide":
+    if nav_view == "Watchlist Scoring":
+        st.subheader("🏆 Watchlist Composite Scoring")
+        st.caption("Rank tickers based on Technicals, Fundamentals, and Quant metrics.")
+        
+        from watchlist_scoring import WatchlistScorer
+        scorer = WatchlistScorer()
+        
+        # Input: Watchlist
+        default_tickers = ["NVDA", "AMD", "TSLA", "AAPL", "MSFT", "GOOGL", "AMZN", "META", "NFLX", "PLTR"]
+        tickers_input = st.text_area("Enter Tickers (comma separated)", value=", ".join(default_tickers))
+        tickers = [t.strip().upper() for t in tickers_input.split(",") if t.strip()]
+        
+        c1, c2, c3 = st.columns(3)
+        w_tech = c1.slider("Technical Weight", 0.0, 1.0, 0.4)
+        w_fund = c2.slider("Fundamental Weight", 0.0, 1.0, 0.4)
+        w_quant = c3.slider("Quant Weight", 0.0, 1.0, 0.2)
+        
+        if st.button("RUN SCORING MODEL", type="primary"):
+            with st.spinner("Fetching data and calculating scores..."):
+                raw_data = scorer.fetch_data(tickers)
+                scores = scorer.calculate_scores(raw_data, w_tech, w_fund, w_quant)
+                
+                if not scores.empty:
+                    st.success("Scoring Complete!")
+                    st.dataframe(scores.style.highlight_max(axis=0, props="background-color: #238636; color: white"), use_container_width=True)
+                    
+                    # Top Pick
+                    top_pick = scores.iloc[0]
+                    st.info(f"🥇 **Top Pick:** {top_pick['Ticker']} (Score: {top_pick['Total_Score']})")
+                else:
+                    st.error("No data found for tickers.")
+
+    elif nav_view == "AI Report Generator":
+        st.subheader("📄 Smart AI Report Generator")
+        st.caption("Generate professional PDF reports with AI-driven insights.")
+        
+        report_ticker = st.text_input("Select Ticker", value=ticker).upper()
+        
+        if st.button("GENERATE REPORT", type="primary"):
+            with st.spinner(f"Analyzing {report_ticker} and generating PDF..."):
+                try:
+                    from ai_report import AIReportGenerator
+                    # Mock data collection for now
+                    mock_data = {
+                        'price': 150.00, 
+                        'tech_posture': 'Bullish',
+                        'fund_posture': 'Strong',
+                        'recommendation': 'BUY',
+                        'rsi': 65.4,
+                        'trend': 'Upward',
+                        'volatility': 0.15,
+                        'market_cap': '2.5T',
+                        'pe': 35.2
+                    }
+                    
+                    generator = AIReportGenerator()
+                    pdf_path = generator.generate_report(report_ticker, mock_data)
+                    
+                    with open(pdf_path, "rb") as f:
+                        pdf_bytes = f.read()
+                        
+                    st.success(f"Report Generated: {pdf_path}")
+                    st.download_button(
+                        label="Download PDF Report",
+                        data=pdf_bytes,
+                        file_name=pdf_path,
+                        mime="application/pdf"
+                    )
+                except Exception as e:
+                    st.error(f"Failed to generate report: {str(e)}")
+
+# 8. QUANT & STRATEGY
 elif nav_category == "Quant & Strategy":
     if nav_view == "Regime Backtest": render_regime_backtest(ticker)
     elif nav_view == "Pairs Trading": render_pairs_trading(ticker)
