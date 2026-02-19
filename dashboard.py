@@ -137,8 +137,21 @@ def render_shell():
     </script>
     """
     
-    # Inject shell + local JS
-    full_html = shell_html.replace('<script src="app.js"></script>', f'<script>{shell_js}</script>{sync_script}')
+    # --- CLEAN SHELL INJECTION ---
+    # Strip document level tags as Streamlit only allows body/div snippets in st.markdown
+    import re
+    # Remove everything before/after the #app div if possible, OR just strip the big ones
+    clean_html = shell_html
+    clean_html = re.sub(r'<!DOCTYPE.*?>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
+    clean_html = re.sub(r'<html.*?>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
+    clean_html = re.sub(r'</html>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
+    clean_html = re.sub(r'<head.*?>.*?</head>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
+    clean_html = re.sub(r'<body.*?>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
+    clean_html = re.sub(r'</body>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
+    
+    full_html = clean_html.replace('<script src="app.js"></script>', f'<script>{shell_js}</script>{sync_script}').strip()
+    
+    # Use empty line at start to ensure st.markdown doesn't treat first line as part of previous block
     st.markdown(full_html, unsafe_allow_html=True)
 
 render_shell()
