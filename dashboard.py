@@ -140,8 +140,12 @@ def render_shell():
     # --- CLEAN SHELL INJECTION ---
     # Strip document level tags as Streamlit only allows body/div snippets in st.markdown
     import re
-    # Remove everything before/after the #app div if possible, OR just strip the big ones
-    clean_html = shell_html
+    # 1. Remove comments
+    clean_html = re.sub(r'<!--.*?-->', '', shell_html, flags=re.DOTALL)
+    
+    # 2. Extract only the #app content (including the div itself)
+    # We look for <div id="app"> ... </div> but regex for matching balanced tags is hard.
+    # Instead, let's just strip the known preamble.
     clean_html = re.sub(r'<!DOCTYPE.*?>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
     clean_html = re.sub(r'<html.*?>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
     clean_html = re.sub(r'</html>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
@@ -149,9 +153,18 @@ def render_shell():
     clean_html = re.sub(r'<body.*?>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
     clean_html = re.sub(r'</body>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
     
-    full_html = clean_html.replace('<script src="app.js"></script>', f'<script>{shell_js}</script>{sync_script}').strip()
+    # 3. Aggressive whitespace cleanup:
+    # Remove leading spaces on every line to avoid code block detection
+    lines = [line.strip() for line in clean_html.split('\n') if line.strip()]
+    clean_html = "".join(lines) # Join without newlines to be safe
     
-    # Use empty line at start to ensure st.markdown doesn't treat first line as part of previous block
+    # 4. Inject JS
+    # We simply replace the script tag. Since we removed newlines, we must match carefully or just append.
+    # The file has <script src="app.js"></script>.
+    # If we joined lines, it might be <script src="app.js"></script> directly.
+    full_html = clean_html.replace('<script src="app.js"></script>', f'<script>{shell_js}</script>{sync_script}')
+    
+    # 5. Final Safety: Wrap in a div if not already (it should be)
     st.markdown(full_html, unsafe_allow_html=True)
 
 render_shell()
