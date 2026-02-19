@@ -126,6 +126,43 @@ c1, c2 = st.sidebar.columns(2)
 period = c1.selectbox("Period", ["1d", "5d", "1mo", "3mo", "6mo", "1y", "2y", "5y"], index=2)
 interval = c2.selectbox("Interval", ["1m", "5m", "15m", "30m", "1h", "1d", "1wk"], index=5)
 
+# --- MARKET STATUS ---
+import time
+_now = datetime.now()
+_market_status = "OPEN" if 9 <= _now.hour < 16 and _now.weekday() < 5 else "CLOSED"
+_color = "#238636" if _market_status == "OPEN" else "#da3633"
+
+st.sidebar.markdown(f"""
+<div style='display: flex; align-items: center; justify-content: space-between; background: #161b22; padding: 8px 12px; border-radius: 6px; border: 1px solid #30363d; margin: 10px 0;'>
+    <div>
+        <span style='font-size: 10px; color: #8b949e; font-weight: 600;'>MARKET</span>
+        <div style='font-size: 12px; font-weight: bold; color: {_color};'>{_market_status}</div>
+    </div>
+    <div style='text-align: right;'>
+        <span style='font-size: 10px; color: #8b949e; font-weight: 600;'>LIVE</span>
+        <div style='font-size: 12px; font-weight: bold; color: #e6edf3;'>{_now.strftime('%H:%M:%S')}</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+if st.sidebar.button("🔄 Refresh Analysis", use_container_width=True):
+    st.rerun()
+
+st.sidebar.markdown("---")
+
+# --- WIDGETS ---
+with st.sidebar.expander("Market Overview", expanded=True):
+    SidebarWidgets.render_indices()
+    
+with st.sidebar.expander("Trending Tickers", expanded=False):
+    SidebarWidgets.render_trending()
+
+with st.sidebar.expander("Upcoming Events", expanded=False):
+    SidebarWidgets.render_compact_events()
+    
+with st.sidebar.expander("Earnings This Week", expanded=False):
+    SidebarWidgets.render_compact_earnings()
+
 # --- NAVIGATION SYSTEM (LAZY LOADING FIX) ---
 st.sidebar.markdown("---")
 st.sidebar.subheader("Navigation")
@@ -356,3 +393,5 @@ elif nav_category == "Research":
             st.write(plan)
     elif nav_view == "Tools":
         st.write("Calculators & Tools")
+\
+st.sidebar.markdown('<div style=''font-size:10px;color:#484f58;''>VP Terminal v2.3</div>', unsafe_allow_html=True)\
