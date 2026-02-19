@@ -1,0 +1,34 @@
+[
+  {
+    "id": 1,
+    "ticker": "SPY",
+    "direction": "LONG",
+    "entry_price": 500,
+    "exit_price": 510,
+    "size": 10,
+    "pnl": 100,
+    "pnl_pct": 2.0,
+    "result": "WIN",
+    "entry_date": "2026-02-19",
+    "exit_date": "2026-02-19",
+    "strategy": "",
+    "notes": "",
+    "logged_at": "2026-02-19 12:39"
+  },
+  {
+    "id": 2,
+    "ticker": "QQQ",
+    "direction": "SHORT",
+    "entry_price": 400,
+    "exit_price": 405,
+    "size": 10,
+    "pnl": -50,
+    "pnl_pct": -1.25,
+    "result": "LOSS",
+    "entry_date": "2026-02-19",
+    "exit_date": "2026-02-19",
+    "strategy": "",
+    "notes": "",
+    "logged_at": "2026-02-19 12:39"
+  }
+]

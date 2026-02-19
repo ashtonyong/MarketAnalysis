@@ -20,28 +20,39 @@ def get_css():
             --blue-m: rgba(59, 130, 246, 0.25);
             --green:   #10b981;
             --green-d: rgba(16, 185, 129, 0.12);
+            --green-b: rgba(16, 185, 129, 0.25);
             --red:     #ef4444;
             --red-d:   rgba(239, 68, 68, 0.12);
+            --red-b:   rgba(239, 68, 68, 0.25);
             --amber:   #f59e0b;
             --amber-d: rgba(245, 158, 11, 0.12);
+            --amber-b: rgba(245, 158, 11, 0.25);
             --violet:  #8b5cf6;
+            --violet-d: rgba(139, 92, 246, 0.12);
+            --violet-b: rgba(139, 92, 246, 0.25);
 
             /* Text */
-            --tp: #e2e8f0;
-            --ts: #64748b;
-            --tm: #2d3f52;
+            --tp: #e2e8f0;   /* Primary   */
+            --ts: #64748b;   /* Secondary */
+            --tm: #2d3f52;   /* Muted     */
 
-            /* Fonts */
+            /* Layout */
+            --rail:  52px;
+            --panel: 214px;
+            --top:   46px;
+
+            /* Typography */
             --sans: 'Bricolage Grotesque', sans-serif;
             --mono: 'JetBrains Mono', monospace;
 
-            /* Dims */
-            --rail: 52px;
-            --panel: 210px;
+            /* Radii */
+            --r-sm: 4px;
+            --r-md: 6px;
+            --r-lg: 8px;
         }
 
         /* --- FONTS --- */
-        @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=JetBrains+Mono:wght@300;400;500;600&display=swap');
 
         /* --- GLOBAL OVERRIDES --- */
         html, body, [class*="css"] {
