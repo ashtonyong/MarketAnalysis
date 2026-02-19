@@ -505,11 +505,11 @@ function startPriceSim() {
 /* ══════════════════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════════════════ */
-document.addEventListener('DOMContentLoaded', () => {
+const initApp = () => {
     // Build navigation
-    renderRail();
-    renderNav();
-    showView(state.viewId, state.navLabel);
+    if (typeof renderRail === 'function') renderRail();
+    if (typeof renderNav === 'function') renderNav();
+    if (typeof showView === 'function' && state.viewId) showView(state.viewId, state.navLabel);
 
     // Wire controls
     wireTopbar();
@@ -521,8 +521,12 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(updateClock, 1000);
     setInterval(updateMarketStatus, 30_000);
 
-    // Dev price sim — remove when connected to real data
-    startPriceSim();
+    // Connected to Real Data via Streamlit Bridge
+    console.log('[VP Terminal] UI initialised (Live Mode) ✓');
+};
 
-    console.log('[VP Terminal] UI initialised ✓');
-});
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+} else {
+    initApp();
+}
