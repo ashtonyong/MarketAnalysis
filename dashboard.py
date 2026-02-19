@@ -82,50 +82,83 @@ def set_cat(cat):
 def set_view(view):
     st.session_state['nav_view'] = view
 
-# --- TOPBAR ---
+# --- QUERY PARAM SYNC ---
+q_ticker = st.query_params.get("ticker", st.session_state['current_ticker'])
+q_view = st.query_params.get("view", st.session_state['nav_view'])
+q_cat = st.query_params.get("cat", st.session_state['nav_category'])
+
+if q_ticker != st.session_state['current_ticker']:
+    st.session_state['current_ticker'] = q_ticker
+    st.rerun()
+
+if q_view != st.session_state['nav_view']:
+    st.session_state['nav_view'] = q_view
+    # Map cat back to display name if needed
+    st.session_state['nav_category'] = q_cat.title().replace('_', ' ')
+    st.rerun()
+
+# --- CUSTOM SHELL INJECTION ---
+def render_shell():
+    try:
+        with open("vp-terminal.html", "r", encoding="utf-8") as f:
+            shell_html = f.read()
+        with open("app.js", "r", encoding="utf-8") as f:
+            shell_js = f.read()
+    except Exception as e:
+        # Fallback to simple notice if files missing
+        st.warning("Redesign shell assets loading...")
+        return
+
+    # Sync state from streamlit to shell
+    # This ensures shell reflects Streamlit's initial or updated state
+    sync_script = f"""
+    <script>
+    window.addEventListener('load', () => {{
+        if (window.state) {{
+            window.state.ticker = "{st.session_state['current_ticker']}";
+            window.state.viewId = "{st.session_state['nav_view']}";
+            let catKey = "{st.session_state['nav_category'].lower().replace(' ', '_').replace('&_', '')}";
+            // Handle special mapping for categories
+            if (catKey === "volume_order_flow") catKey = "volume";
+            if (catKey === "volatility_risk") catKey = "volatility";
+            if (catKey === "research_ai") catKey = "research";
+            
+            window.state.category = catKey;
+            
+            if (typeof renderRail === 'function') renderRail();
+            if (typeof renderNav === 'function') renderNav();
+            if (typeof showView === 'function') showView(window.state.viewId, "{st.session_state['nav_view']}");
+            
+            // Update ticker input
+            const ti = document.getElementById('tickerInput');
+            if (ti) ti.value = window.state.ticker;
+        }}
+    }});
+    </script>
+    """
+    
+    # Inject shell + local JS
+    full_html = shell_html.replace('<script src="app.js"></script>', f'<script>{shell_js}</script>{sync_script}')
+    st.markdown(full_html, unsafe_allow_html=True)
+
+render_shell()
+
+# --- TOPBAR CONTROLS SYNC (Hidden) ---
+# We keep these for state persistence and to allow Streamlit-side updates
 with st.container():
-    # Grid: Logo/Title | Ticker/Controls | Status/Clock
-    c_logo, c_controls, c_status = st.columns([2, 5, 3])
-    
-    with c_logo:
-        st.markdown("""
-        <div style="display:flex; align-items:center; gap:10px;">
-            <div style="width:28px; height:28px; background:linear-gradient(135deg, #3b82f6, #8b5cf6); border-radius:6px; color:white; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px;">VP</div>
-            <div style="line-height:1.1;">
-                <div style="font-weight:700; font-size:15px; color:#e2e8f0;">Terminal</div>
-                <div style="font-size:10px; color:#64748b;">v2.3 Pro</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+    # Only show if not fully hidden by CSS, but styles.py hides this container
+    new_ticker = st.text_input("Ticker", st.session_state['current_ticker'], key="hidden_ticker", label_visibility="collapsed")
+    if new_ticker != st.session_state['current_ticker']:
+        st.session_state['current_ticker'] = new_ticker.upper()
+        # Update query param manually to trigger JS shell update on next load
+        st.query_params["ticker"] = st.session_state['current_ticker']
+        st.rerun()
 
-# ... (Topbar controls omitted for brevity, assumed same) ...
-
-# --- SIDEBAR NAVIGATION (Rail + Panel) ---
-with st.sidebar:
-    # Custom 2-col sidebar
-    c_rail, c_nav = st.columns([1, 4])
-    
-    # RAIL
-    with c_rail:
-        # Text-based Rail for Professional Look (No Emojis)
-        if st.button("CORE", key="nav_core", help="Core Dashboard"): set_cat("Core")
-        if st.button("TECH", key="nav_tech", help="Technical Analysis"): set_cat("Technical")
-        if st.button("VOL", key="nav_vol", help="Volume & Order Flow"): set_cat("Volume & Order Flow")
-        if st.button("RISK", key="nav_risk", help="Volatility & Risk"): set_cat("Volatility & Risk")
-        if st.button("FUND", key="nav_fund", help="Fundamental Analysis"): set_cat("Fundamental")
-        if st.button("INST", key="nav_inst", help="Institutional Tracking"): set_cat("Institutional")
-        if st.button("QNT", key="nav_quant", help="Quant & Strategy"): set_cat("Quant & Strategy")
-        if st.button("SCAN", key="nav_screen", help="Screeners"): set_cat("Screeners")
-        if st.button("R&D", key="nav_res", help="Research & AI"): set_cat("Research & AI")
-        
-        st.markdown("---")
-        if st.button("RFR", key="refresh", help="Refresh Data"): st.rerun()
-
-    # PANEL
-    with c_nav:
-        cat = st.session_state['nav_category']
-        st.markdown(f"**{cat}**")
-        # ... (Nav Items Logic same) ...
+# --- SIDEBAR NAVIGATION (Hidden) ---
+def set_view(view, cat=None):
+    st.session_state['nav_view'] = view
+    if cat: st.session_state['nav_category'] = cat
+    st.rerun()
 
 # --- VIEW ROUTER & RENDERING ---
 ticker = st.session_state['current_ticker']

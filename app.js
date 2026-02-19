@@ -345,23 +345,46 @@ function wireTopbar() {
    HOOKS — connect these to your existing Python/Streamlit logic
 ══════════════════════════════════════════════════════════ */
 
+// Bridge to Streamlit via Query Parameters
+function syncToStreamlit() {
+    console.log('[VP] Syncing to Streamlit:', state.ticker, state.viewId);
+    const url = new URL(window.location.href);
+    url.searchParams.set('ticker', state.ticker);
+    url.searchParams.set('view', state.viewId);
+    url.searchParams.set('cat', state.category);
+    window.history.pushState({}, '', url);
+
+    // Attempt to trigger Streamlit rerun by clicking a hidden refresh button if it exists
+    // or just let the query param change be detected on next interaction.
+    // In many Streamlit environments, window.parent.location update triggers it.
+    window.parent.postMessage({
+        type: 'streamlit:set_query_params',
+        query_params: {
+            ticker: state.ticker,
+            view: state.viewId,
+            cat: state.category
+        }
+    }, '*');
+}
+
 // Called when ticker changes — wire to your existing ticker handler
 function onTickerChange() {
     console.log('[VP] Ticker changed to:', state.ticker);
-    // TODO: call your existing Python component refresh here
+    syncToStreamlit();
     updateSubtitles();
 }
 
 // Called when period/interval changes
 function onSettingChange() {
     console.log('[VP] Settings changed:', state.period, state.interval);
+    syncToStreamlit();
     updateSubtitles();
 }
 
 // Called when refresh button clicked
 function onRefresh() {
     console.log('[VP] Refresh triggered');
-    // TODO: wire to your existing "Refresh Analysis" handler
+    syncToStreamlit();
 }
 
 function updateSubtitles() {
