@@ -8,6 +8,7 @@ import json
 import os
 from datetime import datetime
 from typing import List, Dict, Optional
+import pandas as pd
 
 
 JOURNAL_FILE = os.path.join(os.path.dirname(__file__), '.trade_journal.json')
@@ -63,7 +64,17 @@ class TradeJournal:
                 'profit_factor': 0, 'equity_curve': [],
             }
 
-        wins = [t for t in self.trades if t['pnl'] > 0]
+    def get_recent_trades(self, limit: int = 5) -> pd.DataFrame:
+        """Get recent trades as a DataFrame."""
+        if not self.trades:
+            return pd.DataFrame()
+        
+        # Sort by exit_date desc or id desc
+        sorted_trades = sorted(self.trades, key=lambda x: x['id'], reverse=True)
+        recent = sorted_trades[:limit]
+        return pd.DataFrame(recent)
+
+    def get_stats(self) -> Dict:
         losses = [t for t in self.trades if t['pnl'] < 0]
         pnls = [t['pnl'] for t in self.trades]
 
