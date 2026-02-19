@@ -249,6 +249,74 @@ if nav_category == "Core":
                 tickers = wl_mgr.get_tickers(sel_wl)
                 if tickers:
                     st.write(f"**{sel_wl}**: {', '.join(tickers)}")
+                    
+                    # --- HEATMAP IMPLEMENTATION ---
+                    st.subheader("🔥 Market Heatmap")
+                    with st.spinner("Loading heatmap..."):
+                        if not tickers:
+                            st.warning("Watchlist is empty.")
+                        else:
+                            try:
+                                # Fetch data
+                                data = []
+                                # Use bulk download for speed
+                                df = yf.download(tickers, period="2d", progress=False)
+                                
+                                # Handle single ticker vs multiple
+                                if len(tickers) == 1:
+                                    close = df['Close']
+                                    ticker = tickers[0]
+                                    change = (close.iloc[-1] - close.iloc[0]) / close.iloc[0] * 100
+                                    data.append({'Ticker': ticker, 'Change': change, 'Price': close.iloc[-1], 'Size': 1})
+                                else:
+                                    close = df['Close']
+                                    # Calculate change
+                                    # df['Close'] columns are Tickers
+                                    for t in tickers:
+                                        try:
+                                            # Check if ticker is in columns (yf might drop delisted)
+                                            if t in close.columns:
+                                                series = close[t].dropna()
+                                                if len(series) >= 2:
+                                                    change = (series.iloc[-1] - series.iloc[-2]) / series.iloc[-2] * 100
+                                                    price = series.iloc[-1]
+                                                    data.append({'Ticker': t, 'Change': change, 'Price': price, 'Size': 1})
+                                        except Exception:
+                                            pass
+                                
+                                if data:
+                                    df_map = pd.DataFrame(data)
+                                    
+                                    # Treemap
+                                    fig = px.treemap(
+                                        df_map, 
+                                        path=['Ticker'], 
+                                        values='Size',
+                                        color='Change',
+                                        color_continuous_scale='RdBu_r',
+                                        range_color=[-3, 3],
+                                        custom_data=['Change', 'Price']
+                                    )
+                                    
+                                    fig.update_traces(
+                                        textposition="middle center",
+                                        texttemplate="%{label}<br>%{customdata[0]:.2f}%<br>$%{customdata[1]:.2f}",
+                                        hovertemplate="%{label}<br>Price: $%{customdata[1]:.2f}<br>Change: %{customdata[0]:.2f}%"
+                                    )
+                                    
+                                    fig.update_layout(
+                                        margin=dict(t=0, l=0, r=0, b=0),
+                                        height=400,
+                                        paper_bgcolor='rgba(0,0,0,0)',
+                                        plot_bgcolor='rgba(0,0,0,0)'
+                                    )
+                                    
+                                    st.plotly_chart(fig, use_container_width=True)
+                                else:
+                                    st.warning("No data available for heatmap.")
+                                    
+                            except Exception as e:
+                                st.error(f"Heatmap Error: {str(e)}")
             else:
                 st.info("No watchlists created.")
 
