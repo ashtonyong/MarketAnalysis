@@ -72,141 +72,137 @@ class SidebarWidgets:
 
     @staticmethod
     def render_indices():
-        with st.sidebar:
-            st.markdown("### Market Overview")
-            data = SidebarWidgets.fetch_indices_data()
-            
-            # Grid layout
-            cols = st.columns(2)
-            idx_names = list(data.keys())
-            
-            for i, name in enumerate(idx_names):
-                if name in data:
-                    d = data[name]
-                    col = cols[i % 2]
-                    with col:
-                        color = "#238636" if d['change'] >= 0 else "#da3633"
-                        st.markdown(f"""
-                        <div style="background-color: #0e1117; border: 1px solid #30363d; border-radius: 6px; padding: 8px; margin-bottom: 8px;">
-                            <div style="font-size: 10px; color: #8b949e; font-weight: 600;">{name}</div>
-                            <div style="font-size: 14px; font-weight: bold;">{d['price']:,.2f}</div>
-                            <div style="font-size: 11px; color: {color};">
-                                 {d['change']:+.2f} ({d['pct']:+.2f}%)
-                            </div>
+        # Removed 'with st.sidebar:' to allow rendering inside expanders
+        # st.markdown("### Market Overview") # Redundant if in expander
+        data = SidebarWidgets.fetch_indices_data()
+        
+        # Grid layout
+        cols = st.columns(2)
+        idx_names = list(data.keys())
+        
+        for i, name in enumerate(idx_names):
+            if name in data:
+                d = data[name]
+                col = cols[i % 2]
+                with col:
+                    color = "#238636" if d['change'] >= 0 else "#da3633"
+                    st.markdown(f"""
+                    <div style="background-color: #0e1117; border: 1px solid #30363d; border-radius: 6px; padding: 8px; margin-bottom: 8px;">
+                        <div style="font-size: 10px; color: #8b949e; font-weight: 600;">{name}</div>
+                        <div style="font-size: 14px; font-weight: bold;">{d['price']:,.2f}</div>
+                        <div style="font-size: 11px; color: {color};">
+                                {d['change']:+.2f} ({d['pct']:+.2f}%)
                         </div>
-                        """, unsafe_allow_html=True)
-                        
-                        if d['history']:
-                            fig = go.Figure(go.Scatter(y=d['history'], mode='lines', line=dict(color=color, width=1)))
-                            fig.update_layout(
-                                height=30, margin=dict(l=0,r=0,t=0,b=0),
-                                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
-                                xaxis=dict(visible=False), yaxis=dict(visible=False)
-                            )
-                            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-                        
-            st.markdown("---")
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    if d['history']:
+                        fig = go.Figure(go.Scatter(y=d['history'], mode='lines', line=dict(color=color, width=1)))
+                        fig.update_layout(
+                            height=30, margin=dict(l=0,r=0,t=0,b=0),
+                            paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                            xaxis=dict(visible=False), yaxis=dict(visible=False)
+                        )
+                        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+                    
+        # st.markdown("---")
 
     @staticmethod
     def render_trending():
-        with st.sidebar:
-            st.markdown("### Trending Tickers")
-            data = SidebarWidgets.fetch_trending_data()
+        # Removed 'with st.sidebar:'
+        # st.markdown("### Trending Tickers")
+        data = SidebarWidgets.fetch_trending_data()
+        
+        for item in data:
+            color = "#238636" if item['Change'] >= 0 else "#da3633"
+            st.markdown(f"""
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                <span style="font-weight: bold; font-size: 13px;">{item['Ticker']}</span>
+                <span style="font-size: 13px;">${item['Price']:.2f}</span>
+                <span style="color: {color}; font-size: 12px; background: rgba({35 if item['Change']>=0 else 218}, {134 if item['Change']>=0 else 54}, {54 if item['Change']>=0 else 51}, 0.2); padding: 2px 4px; border-radius: 4px;">
+                    {item['Change']:+.2f}%
+                </span>
+            </div>
+            """, unsafe_allow_html=True)
             
-            for item in data:
-                color = "#238636" if item['Change'] >= 0 else "#da3633"
-                st.markdown(f"""
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                    <span style="font-weight: bold; font-size: 13px;">{item['Ticker']}</span>
-                    <span style="font-size: 13px;">${item['Price']:.2f}</span>
-                    <span style="color: {color}; font-size: 12px; background: rgba({35 if item['Change']>=0 else 218}, {134 if item['Change']>=0 else 54}, {54 if item['Change']>=0 else 51}, 0.2); padding: 2px 4px; border-radius: 4px;">
-                        {item['Change']:+.2f}%
-                    </span>
-                </div>
-                """, unsafe_allow_html=True)
-                
-            st.markdown("---")
+        # st.markdown("---")
 
     @staticmethod
     def render_compact_events():
-        with st.sidebar:
-            col_h, col_a = st.columns([6, 1])
-            col_h.markdown("### Economic Events")
-            if col_a.button(">", key="nav_eco_mini"):
-                 st.components.v1.html("""
-                    <script>
-                    const tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
-                    if (tabs.length > 2) tabs[2].click();
-                    </script>
-                """, height=0)
+        # Removed 'with st.sidebar:'
+        col_h, col_a = st.columns([6, 1])
+        st.caption("Economic Events") # Use caption instead of header
+        if col_a.button(">", key="nav_eco_mini"):
+                st.components.v1.html("""
+                <script>
+                const tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
+                if (tabs.length > 2) tabs[2].click();
+                </script>
+            """, height=0)
 
-            html = """
-            <div class="tradingview-widget-container">
-              <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
-              {
-              "colorTheme": "dark",
-              "isTransparent": true,
-              "width": "100%",
-              "height": "400",
-              "locale": "en",
-              "importanceFilter": "0,1,2"
-            }
-              </script>
-            </div>
-            """
-            components.html(html, height=410)
-            st.markdown("---")
+        html = """
+        <div class="tradingview-widget-container">
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
+            {
+            "colorTheme": "dark",
+            "isTransparent": true,
+            "width": "100%",
+            "height": "400",
+            "locale": "en",
+            "importanceFilter": "0,1,2"
+        }
+            </script>
+        </div>
+        """
+        components.html(html, height=410)
+        # st.markdown("---")
 
     @staticmethod
     def render_compact_earnings():
-        with st.sidebar:
-            col_h, col_a = st.columns([6, 1])
-            col_h.markdown("### Earnings Calendar")
-            if col_a.button(">", key="nav_earn_mini"):
-                 st.components.v1.html("""
-                    <script>
-                    const tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
-                    if (tabs.length > 2) tabs[2].click();
-                    </script>
-                """, height=0)
+        # Removed 'with st.sidebar:'
+        col_h, col_a = st.columns([6, 1])
+        st.caption("Earnings Calendar")
+        if col_a.button(">", key="nav_earn_mini"):
+                st.components.v1.html("""
+                <script>
+                const tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
+                if (tabs.length > 2) tabs[2].click();
+                </script>
+            """, height=0)
 
-            # Use new shared data fetcher
-            try:
-                from components.earnings_data import EarningsData, MARKET_TICKERS
-                
-                # We need to fetch data. Since it's cached, we can just call it.
-                # However, for sidebar speed, we might want fewer days? 
-                # Let's stick to the cached 30 day fetch
-                
-                # Fetch data
-                df = EarningsData.fetch_upcoming_earnings(days_ahead=30)
-                
-                if df is not None and not df.empty:
-                    # Filter for next 14 days for sidebar to keep it compact
-                    df = df.head(8) 
-                    
-                    for _, row in df.iterrows():
-                        # Style: Date on left (FEB 18), Ticker on right
-                        month = row['Month']
-                        day = row['Day']
-                        ticker = row['Symbol']
-                        
-                        st.markdown(f"""
-                        <div style="display: flex; align-items: center; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #21262d;">
-                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 40px; margin-right: 12px;">
-                                <span style="font-size: 10px; font-weight: 600; color: #8b949e; text-transform: uppercase;">{month}</span>
-                                <span style="font-size: 16px; font-weight: 700; color: #e6edf3; line-height: 1;">{day}</span>
-                            </div>
-                            <div style="display: flex; flex-direction: column;">
-                                <span style="font-size: 14px; font-weight: 600; color: #58a6ff;">{ticker}</span>
-                                <span style="font-size: 11px; color: #8b949e;">EPS Est: ${row['EPS Est']}</span>
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                else:
-                    st.caption("No upcoming earnings found.")
-
-            except Exception as e:
-                st.caption(f"Earnings unavailable: {str(e)}")
+        # Use new shared data fetcher
+        try:
+            from components.earnings_data import EarningsData, MARKET_TICKERS
             
-            st.markdown("---")
+            # Fetch data
+            df = EarningsData.fetch_upcoming_earnings(days_ahead=30)
+            
+            if df is not None and not df.empty:
+                # Filter for next 14 days for sidebar to keep it compact
+                df = df.head(8) 
+                
+                for _, row in df.iterrows():
+                    # Style: Date on left (FEB 18), Ticker on right
+                    month = row['Month']
+                    day = row['Day']
+                    ticker = row['Symbol']
+                    
+                    st.markdown(f"""
+                    <div style="display: flex; align-items: center; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #21262d;">
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 40px; margin-right: 12px;">
+                            <span style="font-size: 10px; font-weight: 600; color: #8b949e; text-transform: uppercase;">{month}</span>
+                            <span style="font-size: 16px; font-weight: 700; color: #e6edf3; line-height: 1;">{day}</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-size: 14px; font-weight: 600; color: #58a6ff;">{ticker}</span>
+                            <span style="font-size: 11px; color: #8b949e;">EPS Est: ${row['EPS Est']}</span>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+            else:
+                st.caption("No upcoming earnings found.")
+
+        except Exception as e:
+            st.caption(f"Earnings unavailable: {str(e)}")
+        
+        # st.markdown("---")

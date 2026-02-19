@@ -53,17 +53,6 @@ class TradeJournal:
         """Get all trades."""
         return self.trades
 
-    def get_stats(self) -> Dict:
-        """Get performance statistics."""
-        if not self.trades:
-            return {
-                'total_trades': 0, 'wins': 0, 'losses': 0,
-                'win_rate': 0, 'total_pnl': 0, 'avg_pnl': 0,
-                'best_trade': 0, 'worst_trade': 0,
-                'avg_winner': 0, 'avg_loser': 0,
-                'profit_factor': 0, 'equity_curve': [],
-            }
-
     def get_recent_trades(self, limit: int = 5) -> pd.DataFrame:
         """Get recent trades as a DataFrame."""
         if not self.trades:
@@ -75,6 +64,17 @@ class TradeJournal:
         return pd.DataFrame(recent)
 
     def get_stats(self) -> Dict:
+        """Get performance statistics."""
+        if not self.trades:
+            return {
+                'total_trades': 0, 'wins': 0, 'losses': 0,
+                'win_rate': 0, 'total_pnl': 0, 'avg_pnl': 0,
+                'best_trade': 0, 'worst_trade': 0,
+                'avg_winner': 0, 'avg_loser': 0,
+                'profit_factor': 0, 'equity_curve': [],
+            }
+
+        wins = [t for t in self.trades if t['pnl'] > 0]
         losses = [t for t in self.trades if t['pnl'] < 0]
         pnls = [t['pnl'] for t in self.trades]
 
