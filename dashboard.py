@@ -393,5 +393,4 @@ elif nav_category == "Research":
             st.write(plan)
     elif nav_view == "Tools":
         st.write("Calculators & Tools")
-\
-st.sidebar.markdown('<div style=''font-size:10px;color:#484f58;''>VP Terminal v2.3</div>', unsafe_allow_html=True)\
+st.sidebar.markdown("<div style='font-size:10px;color:#484f58;'>VP Terminal v2.3</div>", unsafe_allow_html=True)
