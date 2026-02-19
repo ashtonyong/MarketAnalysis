@@ -71,11 +71,11 @@ class SidebarWidgets:
         return sorted(data, key=lambda x: abs(x['Change']), reverse=True)[:5] 
 
     @staticmethod
-    def render_indices(container=st):
+    def render_indices():
         data = SidebarWidgets.fetch_indices_data()
         
-        # Use container.columns if available, else st.columns
-        cols = container.columns(2)
+        # Grid layout
+        cols = st.columns(2)
         idx_names = list(data.keys())
         
         for i, name in enumerate(idx_names):
@@ -84,7 +84,7 @@ class SidebarWidgets:
                 col = cols[i % 2]
                 with col:
                     color = "#238636" if d['change'] >= 0 else "#da3633"
-                    container.markdown(f"""
+                    st.markdown(f"""
                     <div style="background-color: #0e1117; border: 1px solid #30363d; border-radius: 6px; padding: 8px; margin-bottom: 8px;">
                         <div style="font-size: 10px; color: #8b949e; font-weight: 600;">{name}</div>
                         <div style="font-size: 14px; font-weight: bold;">{d['price']:,.2f}</div>
@@ -101,15 +101,15 @@ class SidebarWidgets:
                             paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
                             xaxis=dict(visible=False), yaxis=dict(visible=False)
                         )
-                        container.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+                        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
     @staticmethod
-    def render_trending(container=st):
+    def render_trending():
         data = SidebarWidgets.fetch_trending_data()
         
         for item in data:
             color = "#238636" if item['Change'] >= 0 else "#da3633"
-            container.markdown(f"""
+            st.markdown(f"""
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                 <span style="font-weight: bold; font-size: 13px;">{item['Ticker']}</span>
                 <span style="font-size: 13px;">${item['Price']:.2f}</span>
@@ -120,8 +120,8 @@ class SidebarWidgets:
             """, unsafe_allow_html=True)
 
     @staticmethod
-    def render_compact_events(container=st):
-        col_h, col_a = container.columns([6, 1])
+    def render_compact_events():
+        col_h, col_a = st.columns([6, 1])
         col_h.caption("Economic Events")
         if col_a.button(">", key="nav_eco_mini"):
                 st.components.v1.html("""
@@ -145,14 +145,12 @@ class SidebarWidgets:
             </script>
         </div>
         """
-        # components.html always renders in an iframe, hard to put in container explicitly unless we use container.html (doesn't exist)
-        # But we can assume it renders where it's called.
-        with container:
-             components.html(html, height=410)
+        # components.html always renders in an iframe, which handles its own placement
+        components.html(html, height=410)
 
     @staticmethod
-    def render_compact_earnings(container=st):
-        col_h, col_a = container.columns([6, 1])
+    def render_compact_earnings():
+        col_h, col_a = st.columns([6, 1])
         col_h.caption("Earnings Calendar")
         if col_a.button(">", key="nav_earn_mini"):
                 st.components.v1.html("""
@@ -179,7 +177,7 @@ class SidebarWidgets:
                     day = row['Day']
                     ticker = row['Symbol']
                     
-                    container.markdown(f"""
+                    st.markdown(f"""
                     <div style="display: flex; align-items: center; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #21262d;">
                         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 40px; margin-right: 12px;">
                             <span style="font-size: 10px; font-weight: 600; color: #8b949e; text-transform: uppercase;">{month}</span>
@@ -192,7 +190,7 @@ class SidebarWidgets:
                     </div>
                     """, unsafe_allow_html=True)
             else:
-                container.caption("No upcoming earnings found.")
+                st.caption("No upcoming earnings found.")
 
         except Exception as e:
-            container.caption(f"Earnings unavailable: {str(e)}")
+            st.caption(f"Earnings unavailable: {str(e)}")

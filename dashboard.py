@@ -151,17 +151,17 @@ if st.sidebar.button("🔄 Refresh Analysis", use_container_width=True):
 st.sidebar.markdown("---")
 
 # --- WIDGETS ---
-with st.sidebar.expander("Market Overview", expanded=True) as c:
-    SidebarWidgets.render_indices(c)
+with st.sidebar.expander("Market Overview", expanded=True):
+    SidebarWidgets.render_indices()
     
-with st.sidebar.expander("Trending Tickers", expanded=False) as c:
-    SidebarWidgets.render_trending(c)
+with st.sidebar.expander("Trending Tickers", expanded=False):
+    SidebarWidgets.render_trending()
 
-with st.sidebar.expander("Upcoming Events", expanded=False) as c:
-    SidebarWidgets.render_compact_events(c)
+with st.sidebar.expander("Upcoming Events", expanded=False):
+    SidebarWidgets.render_compact_events()
     
-with st.sidebar.expander("Earnings This Week", expanded=False) as c:
-    SidebarWidgets.render_compact_earnings(c)
+with st.sidebar.expander("Earnings This Week", expanded=False):
+    SidebarWidgets.render_compact_earnings()
 
 # --- NAVIGATION SYSTEM (LAZY LOADING FIX) ---
 st.sidebar.markdown("---")
