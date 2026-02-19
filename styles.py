@@ -60,5 +60,11 @@ def get_css():
             padding-top: 0 !important;
         }}
 
+        /* CRITICAL: Ensure actual metrics/charts are above the fixed #app shell */
+        [data-testid="stVerticalBlock"], .block-container {{
+            position: relative;
+            z-index: 100 !important;
+        }}
+
     </style>
     """

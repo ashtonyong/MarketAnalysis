@@ -112,11 +112,34 @@
   ══════════════════════════════════════════════════════ -->
         <div id="body">
 
-            <!-- Icon Rail (built by app.js) -->
-            <div id="rail"></div>
+            <!-- Icon Rail (built by app.js - Fallback injected) -->
+            <div id="rail">
+                <div class="rail-item active" data-cat="core">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>
+                    <div class="rail-tip">Core</div>
+                </div>
+            </div>
 
-            <!-- Nav Panel (built by app.js) -->
-            <div id="nav-panel"></div>
+            <!-- Nav Panel (built by app.js - Fallback injected) -->
+            <div id="nav-panel">
+                <div class="nav-cat-hd">
+                    <div class="nav-cat-name">Core</div>
+                    <div class="nav-cat-desc">Dashboard, alerts & live market overview</div>
+                </div>
+                <div class="nav-scroll">
+                    <div class="nav-group">
+                        <div class="nav-group-hd">View</div>
+                        <div class="nav-item active" data-view="home">Home</div>
+                        <div class="nav-item" data-view="chart">Chart</div>
+                        <div class="nav-item" data-view="news">News <div class="nav-badge">LIVE</div>
+                        </div>
+                        <div class="nav-item" data-view="events">Events</div>
+                    </div>
+                </div>
+            </div>
 
             <!-- ════════════════════════════════════════════════════
          MAIN CONTENT — one .view per tool/page
