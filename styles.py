@@ -64,6 +64,12 @@ def get_css():
         [data-testid="stVerticalBlock"], .block-container {{
             position: relative;
             z-index: 100 !important;
+            color: #e6edf3 !important; /* Force white text */
+        }}
+        
+        /* Force text color on common elements to avoid black-on-black */
+        h1, h2, h3, h4, h5, h6, p, li, span, div {{
+            color: #e6edf3 !important;
         }}
 
     </style>

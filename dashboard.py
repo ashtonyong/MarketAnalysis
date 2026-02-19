@@ -159,10 +159,15 @@ def render_shell():
     clean_html = "".join(lines) # Join without newlines to be safe
     
     # 4. Inject JS
-    # We simply replace the script tag. Since we removed newlines, we must match carefully or just append.
+    # We simply replace the script tag if found, OR append if not found to be safe.
     # The file has <script src="app.js"></script>.
-    # If we joined lines, it might be <script src="app.js"></script> directly.
-    full_html = clean_html.replace('<script src="app.js"></script>', f'<script>{shell_js}</script>{sync_script}')
+    js_tag = '<script src="app.js"></script>'
+    
+    if js_tag in clean_html:
+        full_html = clean_html.replace(js_tag, f'<script>{shell_js}</script>{sync_script}')
+    else:
+        # Fallback: Just append it. The original tag might be mangled by minification but browser ignores 404s.
+        full_html = clean_html + f'<script>{shell_js}</script>{sync_script}'
     
     # 5. Final Safety: Wrap in a div if not already (it should be)
     st.markdown(full_html, unsafe_allow_html=True)
