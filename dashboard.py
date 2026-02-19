@@ -1,38 +1,35 @@
 import streamlit as st
-from streamlit_autorefresh import st_autorefresh
 import yfinance as yf
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import plotly.express as px
 import pandas as pd
-from datetime import datetime, timedelta
-# --- Component Imports ---
+from datetime import datetime
+import time
+
+# --- STYLES & CONFIG ---
+st.set_page_config(layout="wide", page_title="VP Terminal v2.3 Pro", initial_sidebar_state="expanded")
+import styles
+st.markdown(styles.get_css(), unsafe_allow_html=True)
+
+# --- IMPORTS (Keep all existing) ---
 from components.sidebar_widgets import SidebarWidgets
 from components.events_widgets import EventsWidgets
 from components.backtester_ui import render_backtester_tab
 from volume_profile_engine import VolumeProfileEngine
-from volume_profile_backtester import VolumeProfileBacktester, STRATEGIES
+# from volume_profile_backtester import VolumeProfileBacktester, STRATEGIES # (Unused import in original?)
 from ai_agent_interface import VolumeProfileAgent
-from volume_profile_engine import ProfileComparator, ValueAreaMigrationTracker, POCZoneCalculator
-from time_and_sales import TimeAndSalesAnalyzer
 from market_profile import MarketProfileEngine
-from composite_profile import CompositeProfileBuilder
-from volume_nodes import VolumeNodeDetector
-from pattern_detector import ProfilePatternDetector
-from profile_stats import ProfileStatistics
-from scanner import VolumeProfileScanner, WATCHLISTS
 from session_analysis import SessionAnalyzer
 from risk_manager import RiskManager
 from tradingview_widget import TradingViewWidget
 from ai_report import AIReportGenerator
 from multi_timeframe import MultiTimeframeAnalyzer
-from correlation import CorrelationAnalyzer as LegacyCorrelationAnalyzer
 from news_feed import NewsFeedAnalyzer
 from options_flow import OptionsFlowAnalyzer
 from alerts_engine import AlertsEngine, WatchlistManager
-from trade_journal import TradeJournal, TickerNotes, UserPreferences
+from trade_journal import TradeJournal
 from backtester import BacktestEngine
-from quant_engine import MonteCarloSimulator, RegimeDetector, ZScoreCalculator
+from quant_engine import MonteCarloSimulator
 from strategies import BaseStrategy
 from session_range import render_session_range
 from mtf_confluence import render_mtf_confluence
@@ -62,480 +59,329 @@ from analyst_ratings import render_analyst_ratings
 from valuation_history import render_valuation_history
 from institutional_tracker import render_institutional_tracker
 from pairs_trading import render_pairs_trading
-from backtest_engine import render_regime_backtest
 from garch_forecaster import render_garch_forecaster
 from options_analytics import render_options_analytics
-import numpy as np
+from watchlist_scoring import WatchlistScorer # For Platform-Wide mapped to Screeners
 
-st.set_page_config(layout="wide", page_title="VP Terminal v2.3")
-
-# --- Minimal Dark Theme CSS ---
-st.markdown("""
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-    html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
-    .main .block-container { padding: 1.2rem 2rem; max-width: 100%; }
-    
-    /* Sidebar */
-    [data-testid="stSidebar"] { background: #0d1117; border-right: 1px solid #21262d; }
-    
-    /* Buttons */
-    .stButton > button {
-        background: #21262d !important; color: #e6edf3 !important;
-        border: 1px solid #30363d !important; border-radius: 6px;
-    }
-    .stButton > button:hover { background: #30363d !important; border-color: #8b949e !important; }
-
-    /* Metrics */
-    [data-testid="stMetric"] { background: #161b22; border: 1px solid #21262d; border-radius: 6px; padding: 12px; }
-    
-    /* Radio Buttons (Navigation) */
-    .stRadio > div { background: transparent; }
-    .stRadio label { font-size: 14px; font-weight: 500; padding: 4px 0; }
-</style>
-""", unsafe_allow_html=True)
-
-# --- Ticker Mapping ---
-YAHOO_TICKER_MAP = {
-    'XAUUSD': 'GC=F', 'GOLD': 'GC=F', 'CRUDEOIL': 'CL=F', 'OIL': 'CL=F',
-    'BTCUSD': 'BTC-USD', 'ETHUSD': 'ETH-USD', 'SOLUSD': 'SOL-USD',
-    'EURUSD': 'EURUSD=X', 'USDJPY': 'USDJPY=X', 'GBPUSD': 'GBPUSD=X',
-    'NQ': 'NQ=F', 'ES': 'ES=F'
-}
-
-# --- Sidebar Header ---
-st.sidebar.markdown("### 📊 VP Terminal")
-
-# --- GLOBAL TICKER SELECTION ---
+# --- STATE MANAGEMENT ---
+if 'nav_category' not in st.session_state: st.session_state['nav_category'] = "Core"
+if 'nav_view' not in st.session_state: st.session_state['nav_view'] = "Home"
 if 'current_ticker' not in st.session_state: st.session_state['current_ticker'] = "SPY"
-popular_tickers = ["SPY", "QQQ", "IWM", "AAPL", "MSFT", "NVDA", "TSLA", "AMD", "BTCUSD", "ETHUSD", "XAUUSD", "CL=F"]
 
-selected_ticker = st.sidebar.selectbox("Ticker", options=popular_tickers + ["Custom"], 
-    index=popular_tickers.index(st.session_state['current_ticker']) if st.session_state['current_ticker'] in popular_tickers else len(popular_tickers))
+# --- HELPER: SET CATEGORY ---
+def set_cat(cat):
+    st.session_state['nav_category'] = cat
+    # Default views for each category
+    defaults = {
+        "Core": "Home", "Technical": "Market Structure", "Volume & Order Flow": "Volume Profile (Legacy)",
+        "Volatility & Risk": "Portfolio Risk", "Fundamental": "Valuation (DCF)", "Institutional": "Institutional Ownership",
+        "Quant & Strategy": "Regime Backtest", "Screeners": "Setup Scanner", "Research & AI": "Backtester"
+    }
+    st.session_state['nav_view'] = defaults.get(cat, "Home")
 
-if selected_ticker == "Custom":
-    raw_ticker = st.sidebar.text_input("Symbol", value="SPY").upper().strip()
-else:
-    raw_ticker = selected_ticker
+def set_view(view):
+    st.session_state['nav_view'] = view
 
-st.session_state['current_ticker'] = raw_ticker
-ticker = YAHOO_TICKER_MAP.get(raw_ticker, raw_ticker)
-
-# --- Global Settings ---
-c1, c2 = st.sidebar.columns(2)
-period = c1.selectbox("Period", ["1d", "5d", "1mo", "3mo", "6mo", "1y", "2y", "5y"], index=2)
-interval = c2.selectbox("Interval", ["1m", "5m", "15m", "30m", "1h", "1d", "1wk"], index=5)
-
-# --- MARKET STATUS ---
-import time
-_now = datetime.now()
-_market_status = "OPEN" if 9 <= _now.hour < 16 and _now.weekday() < 5 else "CLOSED"
-_color = "#238636" if _market_status == "OPEN" else "#da3633"
-
-st.sidebar.markdown(f"""
-<div style='display: flex; align-items: center; justify-content: space-between; background: #161b22; padding: 8px 12px; border-radius: 6px; border: 1px solid #30363d; margin: 10px 0;'>
-    <div>
-        <span style='font-size: 10px; color: #8b949e; font-weight: 600;'>MARKET</span>
-        <div style='font-size: 12px; font-weight: bold; color: {_color};'>{_market_status}</div>
-    </div>
-    <div style='text-align: right;'>
-        <span style='font-size: 10px; color: #8b949e; font-weight: 600;'>LIVE</span>
-        <div style='font-size: 12px; font-weight: bold; color: #e6edf3;'>{_now.strftime('%H:%M:%S')}</div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-if st.sidebar.button("🔄 Refresh Analysis", use_container_width=True):
-    st.rerun()
-
-st.sidebar.markdown("---")
-
-# --- WIDGETS ---
-with st.sidebar.expander("Market Overview", expanded=True):
-    SidebarWidgets.render_indices()
+# --- TOPBAR ---
+with st.container():
+    # Grid: Logo/Title | Ticker/Controls | Status/Clock
+    c_logo, c_controls, c_status = st.columns([2, 5, 3])
     
-with st.sidebar.expander("Trending Tickers", expanded=False):
-    SidebarWidgets.render_trending()
-
-with st.sidebar.expander("Upcoming Events", expanded=False):
-    SidebarWidgets.render_compact_events()
-    
-with st.sidebar.expander("Earnings This Week", expanded=False):
-    SidebarWidgets.render_compact_earnings()
-
-# --- NAVIGATION SYSTEM (LAZY LOADING FIX) ---
-st.sidebar.markdown("---")
-st.sidebar.subheader("Navigation")
-
-nav_category = st.sidebar.radio(
-    "Category",
-    ["Core", "Technical", "Volume & Order Flow", "Volatility & Risk", 
-     "Fundamental", "Institutional", "Quant & Strategy", "Screeners", "Research"],
-    index=0
-)
-
-# Dynamic Sub-Navigation
-if nav_category == "Core":
-    nav_view = st.sidebar.radio("View", ["Home", "Chart", "News", "Events"])
-    
-elif nav_category == "Technical":
-    nav_view = st.sidebar.radio("View", 
-        ["Market Structure", "FVG Scanner", "MTF Confluence", "Session Ranges", "Pre/Post Tracker", "Targets", "Range Analysis"])
-
-elif nav_category == "Volume & Order Flow":
-    nav_view = st.sidebar.radio("Analysis", 
-        ["Volume Profile (Legacy)", "Order Flow", "Liquidity Heatmap", "Session Analysis"])
-
-elif nav_category == "Volatility & Risk":
-    nav_view = st.sidebar.radio("Tools", 
-        ["Portfolio Risk", "Earnings Volatility", "GARCH Forecast", "Vol Surface", "Options Flow", "Options Chain"])
-
-elif nav_category == "Fundamental":
-    nav_view = st.sidebar.radio("Metrics", 
-        ["Valuation (DCF)", "Valuation History", "Analyst Ratings", "Peers", "Dividends"])
-
-elif nav_category == "Institutional":
-    nav_view = st.sidebar.radio("Tracking", 
-        ["Institutional Ownership", "Insider Trading", "Short Interest", "Sentiment Timeline"])
-
-elif nav_category == "Platform-Wide":
-    nav_view = st.sidebar.radio("Features", 
-        ["Watchlist Scoring", "AI Report Generator"])
-
-elif nav_category == "Quant & Strategy":
-    nav_view = st.sidebar.radio("Models", 
-        ["Regime Backtest", "Pairs Trading", "Rolling Beta", "Factor Model", "Correlation"])
-
-elif nav_category == "Screeners":
-    nav_view = st.sidebar.radio("Scanner", 
-        ["Setup Scanner", "Fundamental Screener", "RS Rating"])
-
-elif nav_category == "Research":
-    nav_view = st.sidebar.radio("Lab", 
-        ["Backtester", "AI Insights", "Tools"])
-
-# --- MAIN CONTENT RENDERING ---
-
-# 1. CORE VIEWS
-if nav_category == "Core":
-    if nav_view == "Home":
-        st.subheader("🏠 Home")
+    with c_logo:
+        st.markdown("""
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:28px; height:28px; background:linear-gradient(135deg, #3b82f6, #8b5cf6); border-radius:6px; color:white; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px;">VP</div>
+            <div style="line-height:1.1;">
+                <div style="font-weight:700; font-size:15px; color:#e2e8f0;">Terminal</div>
+                <div style="font-size:10px; color:#64748b;">v2.3 Pro</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
-        # Initialize Managers
-        journal = TradeJournal()
-        wl_mgr = WatchlistManager()
-        alert_engine = AlertsEngine()
-        
-        home_tabs = st.tabs(["Overview", "Journal", "Watchlists", "Alerts"])
-        
-        # --- OVERVIEW ---
-        with home_tabs[0]:
-            # Summary Cards
-            active_alerts = alert_engine.get_active_alerts()
-            triggered_alerts = alert_engine.get_triggered_alerts()
-            journal_stats = journal.get_stats()
+    with c_controls:
+        cc1, cc2, cc3, cc4 = st.columns([2, 0.2, 1, 1])
+        with cc1:
+            raw_ticker = st.text_input("Ticker", value=st.session_state['current_ticker'], label_visibility="collapsed", placeholder="Search Ticker...")
+            st.session_state['current_ticker'] = raw_ticker.upper().strip()
             
-            c1, c2, c3, c4 = st.columns(4)
-            c1.metric("Active Alerts", len(active_alerts) if active_alerts else 0)
-            c2.metric("Triggered Today", len(triggered_alerts) if triggered_alerts else 0)
-            c3.metric("Win Rate", f"{journal_stats.get('win_rate', 0)}%")
-            c4.metric("Total Trades", journal_stats.get('total_trades', 0))
+        with cc3:
+            period = st.selectbox("Period", ["1d", "5d", "1mo", "3mo", "6mo", "1y", "2y", "5y"], index=2, label_visibility="collapsed")
+        with cc4:
+            interval = st.selectbox("Interval", ["1m", "5m", "15m", "30m", "1h", "1d", "1wk"], index=5, label_visibility="collapsed")
             
-            st.divider()
-            st.markdown("### Watchlist Overview")
+    with c_status:
+        _now = datetime.now()
+        _market = "OPEN" if 9 <= _now.hour < 16 and _now.weekday() < 5 else "CLOSED"
+        _color = "#10b981" if _market == "OPEN" else "#ef4444"
+        
+        st.markdown(f"""
+        <div style="display:flex; justify-content:flex-end; align-items:center; gap:16px;">
+            <div style="display:flex; align-items:center; gap:6px; background:rgba(16,185,129,0.12); padding:4px 8px; border-radius:100px; color:{_color}; font-size:10px; font-weight:600;">
+                <div style="width:6px; height:6px; background:currentColor; border-radius:50%;"></div> MARKET {_market}
+            </div>
+            <div style="text-align:right;">
+                <div style="font-family:'JetBrains Mono'; font-size:14px; font-weight:600; color:#e2e8f0;">{_now.strftime('%H:%M:%S')}</div>
+                <div style="font-size:9px; color:#64748b;">{_now.strftime('%b %d')}</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+st.divider()
+
+# --- SIDEBAR NAVIGATION (Rail + Panel) ---
+with st.sidebar:
+    # Custom 2-col sidebar
+    c_rail, c_nav = st.columns([1, 4])
+    
+    # RAIL
+    with c_rail:
+        # Text-based Rail for Professional Look (No Emojis)
+        if st.button("CORE", key="nav_core", help="Core Dashboard"): set_cat("Core")
+        if st.button("TECH", key="nav_tech", help="Technical Analysis"): set_cat("Technical")
+        if st.button("VOL", key="nav_vol", help="Volume & Order Flow"): set_cat("Volume & Order Flow")
+        if st.button("RISK", key="nav_risk", help="Volatility & Risk"): set_cat("Volatility & Risk")
+        if st.button("FUND", key="nav_fund", help="Fundamental Analysis"): set_cat("Fundamental")
+        if st.button("INST", key="nav_inst", help="Institutional Tracking"): set_cat("Institutional")
+        if st.button("QNT", key="nav_quant", help="Quant & Strategy"): set_cat("Quant & Strategy")
+        if st.button("SCAN", key="nav_screen", help="Screeners"): set_cat("Screeners")
+        if st.button("R&D", key="nav_res", help="Research & AI"): set_cat("Research & AI")
+        
+        st.markdown("---")
+        if st.button("RFR", key="refresh", help="Refresh Data"): st.rerun()
+
+    # PANEL
+    with c_nav:
+        cat = st.session_state['nav_category']
+        st.markdown(f"**{cat}**")
+        
+        # CATEGORY VIEW LISTS
+        if cat == "Core":
+            for v in ["Home", "Chart", "News", "Events"]:
+                if st.button(v, key=f"v_{v}", type="primary" if st.session_state['nav_view'] == v else "secondary"): set_view(v)
+        
+        elif cat == "Technical":
+            for v in ["Market Structure", "FVG Scanner", "MTF Confluence", "Session Ranges", "Pre/Post Tracker", "Targets", "Range Analysis"]:
+                if st.button(v, key=f"v_{v}", type="primary" if st.session_state['nav_view'] == v else "secondary"): set_view(v)
+                
+        elif cat == "Volume & Order Flow":
+            for v in ["Volume Profile (Legacy)", "Order Flow", "Liquidity Heatmap", "Session Analysis"]:
+                if st.button(v, key=f"v_{v}", type="primary" if st.session_state['nav_view'] == v else "secondary"): set_view(v)
+
+        elif cat == "Volatility & Risk":
+            for v in ["Portfolio Risk", "Earnings Volatility", "GARCH Forecast", "Vol Surface", "Options Flow", "Options Chain"]:
+                if st.button(v, key=f"v_{v}", type="primary" if st.session_state['nav_view'] == v else "secondary"): set_view(v)
+
+        elif cat == "Fundamental":
+            for v in ["Valuation (DCF)", "Valuation History", "Analyst Ratings", "Peers", "Dividends"]:
+                if st.button(v, key=f"v_{v}", type="primary" if st.session_state['nav_view'] == v else "secondary"): set_view(v)
+
+        elif cat == "Institutional":
+            for v in ["Institutional Ownership", "Insider Trading", "Short Interest", "Sentiment Timeline"]:
+                if st.button(v, key=f"v_{v}", type="primary" if st.session_state['nav_view'] == v else "secondary"): set_view(v)
+
+        elif cat == "Quant & Strategy":
+            for v in ["Regime Backtest", "Pairs Trading", "Rolling Beta", "Factor Model", "Correlation"]:
+                if st.button(v, key=f"v_{v}", type="primary" if st.session_state['nav_view'] == v else "secondary"): set_view(v)
+
+        elif cat == "Screeners":
+            for v in ["Setup Scanner", "Fundamental Screener", "RS Rating", "Watchlist Scoring"]:
+                if st.button(v, key=f"v_{v}", type="primary" if st.session_state['nav_view'] == v else "secondary"): set_view(v)
+        
+        elif cat == "Research & AI":
+            for v in ["Backtester", "AI Insights", "AI Report Generator"]:
+                if st.button(v, key=f"v_{v}", type="primary" if st.session_state['nav_view'] == v else "secondary"): set_view(v)
+
+# --- VIEW ROUTER & RENDERING ---
+ticker = st.session_state['current_ticker']
+nav_view = st.session_state['nav_view']
+
+# 1. CORE
+if nav_view == "Home":
+    st.subheader("🏠 Home Dashboard")
+    
+    # Initialize Managers
+    journal = TradeJournal()
+    wl_mgr = WatchlistManager()
+    alert_engine = AlertsEngine()
+    
+    home_tabs = st.tabs(["Overview", "Journal", "Watchlists", "Alerts"])
+    
+    # --- OVERVIEW ---
+    with home_tabs[0]:
+        active_alerts = alert_engine.get_active_alerts()
+        triggered_alerts = alert_engine.get_triggered_alerts()
+        journal_stats = journal.get_stats()
+        
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Active Alerts", len(active_alerts) if active_alerts else 0)
+        c2.metric("Triggered Today", len(triggered_alerts) if triggered_alerts else 0)
+        c3.metric("Win Rate", f"{journal_stats.get('win_rate', 0)}%")
+        c4.metric("Total Trades", journal_stats.get('total_trades', 0))
+        
+        st.markdown("---")
+        
+        # Split Layout: Heatmap + Watchlist | Widgets
+        col_main, col_side = st.columns([2, 1])
+        
+        with col_main:
+            st.markdown("### Watchlist & Heatmap")
             wl_names = wl_mgr.get_names()
             if wl_names:
                 sel_wl = st.selectbox("Select Watchlist", wl_names)
                 tickers = wl_mgr.get_tickers(sel_wl)
                 if tickers:
-                    st.write(f"**{sel_wl}**: {', '.join(tickers)}")
+                    st.caption(f"**{sel_wl}**: {', '.join(tickers)}")
                     
-                    # --- HEATMAP IMPLEMENTATION ---
-                    st.subheader("🔥 Market Heatmap")
+                    # HEATMAP
                     with st.spinner("Loading heatmap..."):
-                        if not tickers:
-                            st.warning("Watchlist is empty.")
-                        else:
-                            try:
-                                # Fetch data
-                                data = []
-                                # Use bulk download for speed
-                                df = yf.download(tickers, period="2d", progress=False)
-                                
-                                # Handle single ticker vs multiple
-                                if len(tickers) == 1:
-                                    close = df['Close']
-                                    ticker = tickers[0]
-                                    change = (close.iloc[-1] - close.iloc[0]) / close.iloc[0] * 100
-                                    data.append({'Ticker': ticker, 'Change': change, 'Price': close.iloc[-1], 'Size': 1})
-                                else:
-                                    close = df['Close']
-                                    # Calculate change
-                                    # df['Close'] columns are Tickers
-                                    for t in tickers:
-                                        try:
-                                            # Check if ticker is in columns (yf might drop delisted)
-                                            if t in close.columns:
-                                                series = close[t].dropna()
-                                                if len(series) >= 2:
-                                                    change = (series.iloc[-1] - series.iloc[-2]) / series.iloc[-2] * 100
-                                                    price = series.iloc[-1]
-                                                    data.append({'Ticker': t, 'Change': change, 'Price': price, 'Size': 1})
-                                        except Exception:
-                                            pass
-                                
-                                if data:
-                                    df_map = pd.DataFrame(data)
-                                    
-                                    # Treemap
-                                    fig = px.treemap(
-                                        df_map, 
-                                        path=['Ticker'], 
-                                        values='Size',
-                                        color='Change',
-                                        color_continuous_scale='RdBu_r',
-                                        range_color=[-3, 3],
-                                        custom_data=['Change', 'Price']
-                                    )
-                                    
-                                    fig.update_traces(
-                                        textposition="middle center",
-                                        texttemplate="%{label}<br>%{customdata[0]:.2f}%<br>$%{customdata[1]:.2f}",
-                                        hovertemplate="%{label}<br>Price: $%{customdata[1]:.2f}<br>Change: %{customdata[0]:.2f}%"
-                                    )
-                                    
-                                    fig.update_layout(
-                                        margin=dict(t=0, l=0, r=0, b=0),
-                                        height=400,
-                                        paper_bgcolor='rgba(0,0,0,0)',
-                                        plot_bgcolor='rgba(0,0,0,0)'
-                                    )
-                                    
-                                    st.plotly_chart(fig, use_container_width=True)
-                                else:
-                                    st.warning("No data available for heatmap.")
-                                    
-                            except Exception as e:
-                                st.error(f"Heatmap Error: {str(e)}")
-            else:
-                st.info("No watchlists created.")
-
-        # --- JOURNAL ---
-        with home_tabs[1]:
-            st.subheader("Trade Journal")
-            # Simple form to add trade
-            with st.expander("Log New Trade"):
-                with st.form("trade_log"):
-                    t_ticker = st.text_input("Ticker", value=ticker)
-                    t_action = st.selectbox("Action", ["Buy", "Sell"])
-                    t_price = st.number_input("Price", min_value=0.0)
-                    t_shares = st.number_input("Shares", min_value=1)
-                    t_notes = st.text_area("Notes")
-                    if st.form_submit_button("Log Trade"):
-                        journal.log_trade(t_ticker, t_action, t_price, t_shares, t_notes)
-                        st.success("Trade Logged!")
-            
-            # Show Recent
-            trades = journal.get_recent_trades()
-            if not trades.empty:
-                st.dataframe(trades, use_container_width=True)
-
-        # --- WATCHLISTS ---
-        with home_tabs[2]:
-            st.subheader("Manage Watchlists")
-            new_wl = st.text_input("New Watchlist Name")
-            if st.button("Create Watchlist") and new_wl:
-                wl_mgr.create_watchlist(new_wl)
-                st.success(f"Created {new_wl}")
-
-        # --- ALERTS ---
-        with home_tabs[3]:
-            st.subheader("Active Alerts")
-            if active_alerts:
-                st.dataframe(active_alerts, use_container_width=True)
-            else:
-                st.info("No active alerts.")
-            
-    elif nav_view == "Chart":
-        st.subheader(f"📈 Chart: {ticker}")
-        TradingViewWidget.render(ticker)
+                        try:
+                            df = yf.download(tickers, period="2d", progress=False)
+                            data = []
+                            # (Heatmap Data Logic)
+                            if len(tickers) == 1:
+                                close = df['Close']
+                                change = (close.iloc[-1] - close.iloc[0]) / close.iloc[0] * 100
+                                data.append({'Ticker': tickers[0], 'Change': change, 'Price': close.iloc[-1], 'Size': 1})
+                            else:
+                                close = df['Close']
+                                for t in tickers:
+                                    if t in close.columns:
+                                        s = close[t].dropna()
+                                        if len(s) >= 2:
+                                            chg = (s.iloc[-1] - s.iloc[-2]) / s.iloc[-2] * 100
+                                            data.append({'Ticker': t, 'Change': chg, 'Price': s.iloc[-1], 'Size': 1})
+                            
+                            if data:
+                                df_map = pd.DataFrame(data)
+                                fig = px.treemap(
+                                    df_map, path=['Ticker'], values='Size', color='Change',
+                                    color_continuous_scale='RdBu_r', range_color=[-3, 3],
+                                    custom_data=['Change', 'Price']
+                                )
+                                fig.update_traces(
+                                    textposition="middle center",
+                                    texttemplate="%{label}<br>%{customdata[0]:.2f}%<br>$%{customdata[1]:.2f}",
+                                    hovertemplate="%{label}<br>$%{customdata[1]:.2f}<br>%{customdata[0]:.2f}%"
+                                )
+                                fig.update_layout(margin=dict(t=0,l=0,r=0,b=0), height=350, paper_bgcolor='rgba(0,0,0,0)')
+                                st.plotly_chart(fig, use_container_width=True)
+                        except Exception as e: st.error(f"Heatmap: {e}")
         
-    elif nav_view == "News":
-        render_sentiment_timeline(ticker)
-        
-    elif nav_view == "Events":
-        render_econ_impact_overlay(ticker)
+        with col_side:
+            with st.expander("Sidebar Widgets", expanded=True):
+                 SidebarWidgets.render_indices()
+                 st.markdown("---")
+                 SidebarWidgets.render_trending()
 
-# 2. TECHNICAL ANALYSIS
-elif nav_category == "Technical":
-    if nav_view == "Market Structure": render_market_structure(ticker)
-    elif nav_view == "FVG Scanner": render_fvg_scanner(ticker)
-    elif nav_view == "MTF Confluence": render_mtf_confluence(ticker)
-    elif nav_view == "Session Ranges": render_session_range(ticker)
-    elif nav_view == "Pre/Post Tracker": render_prepost_tracker(popular_tickers)
-    elif nav_view == "Targets": render_price_targets(ticker)
-    elif nav_view == "Range Analysis": render_range_dashboard(ticker)
+    # --- JOURNAL ---
+    with home_tabs[1]:
+        with st.form("trade_log"):
+            c1, c2 = st.columns(2)
+            t_ticker = c1.text_input("Ticker", value=ticker)
+            t_action = c2.selectbox("Action", ["Buy", "Sell"])
+            c3, c4 = st.columns(2)
+            t_price = c3.number_input("Price", min_value=0.0)
+            t_shares = c4.number_input("Shares", min_value=1)
+            t_notes = st.text_area("Notes")
+            if st.form_submit_button("Log Trade"):
+                journal.log_trade(t_ticker, t_action, t_price, t_shares, t_notes)
+                st.success("Logged!")
+        st.dataframe(journal.get_recent_trades(), use_container_width=True)
 
-# 3. VOLUME & ORDER FLOW
-elif nav_category == "Volume & Order Flow":
-    if nav_view == "Volume Profile (Legacy)":
-        # Simplified VP rendering
-        engine = VolumeProfileEngine(ticker, period, interval)
-        engine.fetch_data()
-        engine.calculate_volume_profile()
-        st.write("Volume Profile Logic Here (Simplified for Lazy Load)")
-        # In real app, paste full logic or modularize 'render_volume_profile'
-        
-    elif nav_view == "Order Flow":
-        st.subheader("Order Flow & TPO")
-        st.info("Market Profile Engine Loading...")
-        try:
-            mp = MarketProfileEngine(ticker)
-            tpo = mp.calculate_tpo_profile()
-            if tpo:
-                st.write(f"Day Type: {tpo['day_type']}")
-            else:
-                st.warning("No TPO data")
-        except Exception as e:
-            st.error(f"Error: {e}")
-            
-    elif nav_view == "Liquidity Heatmap": render_liquidity_heatmap(ticker)
-    elif nav_view == "Session Analysis": 
-        sess = SessionAnalyzer(ticker)
-        st.write("Session Analysis Placeholder")
+    # --- WATCHLISTS ---
+    with home_tabs[2]:
+        new_wl = st.text_input("New Watchlist Name")
+        if st.button("Create Watchlist") and new_wl:
+            wl_mgr.create_watchlist(new_wl)
+            st.success(f"Created {new_wl}")
 
-# 4. VOLATILITY & RISK
-elif nav_category == "Volatility & Risk":
-    if nav_view == "Portfolio Risk": render_portfolio_risk(ticker)
-    elif nav_view == "Earnings Volatility": render_earnings_volatility(ticker)
-    elif nav_view == "GARCH Forecast": render_garch_forecaster(ticker)
-    elif nav_view == "Vol Surface": render_vol_surface(ticker)
-    elif nav_view == "Options Chain": render_options_analytics(ticker)
-    elif nav_view == "Options Flow": 
-        st.subheader("Options Flow")
-        try:
-            ofa = OptionsFlowAnalyzer(ticker)
-            exps = ofa.get_expirations()
-            if exps:
-                sel = st.selectbox("Expiration", exps)
-                if st.button("Load Flow"):
-                    res = ofa.analyze(sel)
-                    st.write(res)
-        except: st.error("Options Error")
+    # --- ALERTS ---
+    with home_tabs[3]:
+        st.dataframe(alert_engine.get_active_alerts(), use_container_width=True)
+
+elif nav_view == "Chart":
+    st.subheader(f"📈 Chart: {ticker}")
+    TradingViewWidget.render(ticker)
+
+elif nav_view == "News": render_sentiment_timeline(ticker)
+elif nav_view == "Events": render_econ_impact_overlay(ticker)
+
+# 2. TECHNICAL
+elif nav_view == "Market Structure": render_market_structure(ticker)
+elif nav_view == "FVG Scanner": render_fvg_scanner(ticker)
+elif nav_view == "MTF Confluence": render_mtf_confluence(ticker)
+elif nav_view == "Session Ranges": render_session_range(ticker)
+elif nav_view == "Pre/Post Tracker": render_prepost_tracker(popular_tickers)
+elif nav_view == "Targets": render_price_targets(ticker)
+elif nav_view == "Range Analysis": render_range_dashboard(ticker)
+
+# 3. VOLUME
+elif nav_view == "Volume Profile (Legacy)":
+    engine = VolumeProfileEngine(ticker, period, interval)
+    engine.fetch_data(); engine.calculate_volume_profile()
+    st.info("Legacy VP Engine Loaded.")
+elif nav_view == "Order Flow":
+    st.subheader("Order Flow TPO")
+    try:
+        mp = MarketProfileEngine(ticker)
+        tpo = mp.calculate_tpo_profile()
+        st.write(f"Day Type: {tpo['day_type']}" if tpo else "No Data")
+    except: st.warning("TPO Calc Failed")
+elif nav_view == "Liquidity Heatmap": render_liquidity_heatmap(ticker)
+elif nav_view == "Session Analysis": st.write("Session Analysis Placeholder")
+
+# 4. RISK
+elif nav_view == "Portfolio Risk": render_portfolio_risk(ticker)
+elif nav_view == "Earnings Volatility": render_earnings_volatility(ticker)
+elif nav_view == "GARCH Forecast": render_garch_forecaster(ticker)
+elif nav_view == "Vol Surface": render_vol_surface(ticker)
+elif nav_view == "Options Chain": render_options_analytics(ticker)
+elif nav_view == "Options Flow": st.info("Options Flow Placeholder")
 
 # 5. FUNDAMENTAL
-elif nav_category == "Fundamental":
-    if nav_view == "Valuation (DCF)": render_dcf_engine(ticker)
-    elif nav_view == "Valuation History": render_valuation_history(ticker)
-    elif nav_view == "Analyst Ratings": render_analyst_ratings(ticker)
-    elif nav_view == "Peers": render_peer_comparison(ticker)
-    elif nav_view == "Dividends": render_dividend_tracker(ticker)
+elif nav_view == "Valuation (DCF)": render_dcf_engine(ticker)
+elif nav_view == "Valuation History": render_valuation_history(ticker)
+elif nav_view == "Analyst Ratings": render_analyst_ratings(ticker)
+elif nav_view == "Peers": render_peer_comparison(ticker)
+elif nav_view == "Dividends": render_dividend_tracker(ticker)
 
 # 6. INSTITUTIONAL
-elif nav_category == "Institutional":
-    if nav_view == "Institutional Ownership": render_institutional_tracker(ticker)
-    elif nav_view == "Insider Trading": render_insider_tracker(ticker)
-    elif nav_view == "Short Interest": render_short_interest(ticker)
-    elif nav_view == "Sentiment Timeline": render_sentiment_timeline(ticker)
+elif nav_view == "Institutional Ownership": render_institutional_tracker(ticker)
+elif nav_view == "Insider Trading": render_insider_tracker(ticker)
+elif nav_view == "Short Interest": render_short_interest(ticker)
+elif nav_view == "Sentiment Timeline": render_sentiment_timeline(ticker)
 
-# 7. PLATFORM-WIDE
-elif nav_category == "Platform-Wide":
-    if nav_view == "Watchlist Scoring":
-        st.subheader("🏆 Watchlist Composite Scoring")
-        st.caption("Rank tickers based on Technicals, Fundamentals, and Quant metrics.")
-        
-        from watchlist_scoring import WatchlistScorer
-        scorer = WatchlistScorer()
-        
-        # Input: Watchlist
-        default_tickers = ["NVDA", "AMD", "TSLA", "AAPL", "MSFT", "GOOGL", "AMZN", "META", "NFLX", "PLTR"]
-        tickers_input = st.text_area("Enter Tickers (comma separated)", value=", ".join(default_tickers))
-        tickers = [t.strip().upper() for t in tickers_input.split(",") if t.strip()]
-        
-        c1, c2, c3 = st.columns(3)
-        w_tech = c1.slider("Technical Weight", 0.0, 1.0, 0.4)
-        w_fund = c2.slider("Fundamental Weight", 0.0, 1.0, 0.4)
-        w_quant = c3.slider("Quant Weight", 0.0, 1.0, 0.2)
-        
-        if st.button("RUN SCORING MODEL", type="primary"):
-            with st.spinner("Fetching data and calculating scores..."):
-                raw_data = scorer.fetch_data(tickers)
-                scores = scorer.calculate_scores(raw_data, w_tech, w_fund, w_quant)
-                
-                if not scores.empty:
-                    st.success("Scoring Complete!")
-                    st.dataframe(scores.style.highlight_max(axis=0, props="background-color: #238636; color: white"), use_container_width=True)
-                    
-                    # Top Pick
-                    top_pick = scores.iloc[0]
-                    st.info(f"🥇 **Top Pick:** {top_pick['Ticker']} (Score: {top_pick['Total_Score']})")
-                else:
-                    st.error("No data found for tickers.")
-
-    elif nav_view == "AI Report Generator":
-        st.subheader("📄 Smart AI Report Generator")
-        st.caption("Generate professional PDF reports with AI-driven insights.")
-        
-        report_ticker = st.text_input("Select Ticker", value=ticker).upper()
-        
-        if st.button("GENERATE REPORT", type="primary"):
-            with st.spinner(f"Analyzing {report_ticker} and generating PDF..."):
-                try:
-                    from ai_report import AIReportGenerator
-                    # Mock data collection for now
-                    mock_data = {
-                        'price': 150.00, 
-                        'tech_posture': 'Bullish',
-                        'fund_posture': 'Strong',
-                        'recommendation': 'BUY',
-                        'rsi': 65.4,
-                        'trend': 'Upward',
-                        'volatility': 0.15,
-                        'market_cap': '2.5T',
-                        'pe': 35.2
-                    }
-                    
-                    generator = AIReportGenerator()
-                    pdf_path = generator.generate_report(report_ticker, mock_data)
-                    
-                    with open(pdf_path, "rb") as f:
-                        pdf_bytes = f.read()
-                        
-                    st.success(f"Report Generated: {pdf_path}")
-                    st.download_button(
-                        label="Download PDF Report",
-                        data=pdf_bytes,
-                        file_name=pdf_path,
-                        mime="application/pdf"
-                    )
-                except Exception as e:
-                    st.error(f"Failed to generate report: {str(e)}")
-
-# 8. QUANT & STRATEGY
-elif nav_category == "Quant & Strategy":
-    if nav_view == "Regime Backtest": render_regime_backtest(ticker)
-    elif nav_view == "Pairs Trading": render_pairs_trading(ticker)
-    elif nav_view == "Rolling Beta": render_rolling_beta(ticker)
-    elif nav_view == "Factor Model": render_factor_model(ticker)
-    elif nav_view == "Correlation": 
-        st.subheader("Correlation Matrix")
-        # Legacy/Simple Correlation placeholder
-        st.info("Correlation Matrix Placeholder")
+# 7. QUANT
+elif nav_view == "Regime Backtest": render_regime_backtest(ticker)
+elif nav_view == "Pairs Trading": render_pairs_trading(ticker)
+elif nav_view == "Rolling Beta": render_rolling_beta(ticker)
+elif nav_view == "Factor Model": render_factor_model(ticker)
+elif nav_view == "Correlation": st.info("Correlation Matrix Placeholder")
 
 # 8. SCREENERS
-elif nav_category == "Screeners":
-    if nav_view == "Setup Scanner": render_setup_scanner(popular_tickers)
-    elif nav_view == "Fundamental Screener": render_fundamental_screener(ticker)
-    elif nav_view == "RS Rating": render_rs_rating(ticker)
+elif nav_view == "Setup Scanner": render_setup_scanner(ticker)
+elif nav_view == "Fundamental Screener": render_fundamental_screener()
+elif nav_view == "RS Rating": render_rs_rating(ticker)
+elif nav_view == "Watchlist Scoring":
+    st.subheader("🏆 Watchlist Scoring")
+    scorer = WatchlistScorer()
+    default_tickers = ["NVDA", "AMD", "TSLA", "AAPL", "MSFT"]
+    t_in = st.text_area("Tickers", value=", ".join(default_tickers))
+    tickers = [t.strip().upper() for t in t_in.split(",") if t.strip()]
+    if st.button("Run Scoring"):
+        data = scorer.fetch_data(tickers)
+        scores = scorer.calculate_scores(data)
+        st.dataframe(scores, use_container_width=True)
 
 # 9. RESEARCH
-elif nav_category == "Research":
-    if nav_view == "Backtester": render_backtester_tab(ticker, period)
-    elif nav_view == "AI Insights":
-        if st.button("Generate AI Plan"):
-            st.info("AI Agent Thinking...")
-            plan = VolumeProfileAgent.get_trading_plan(ticker, period)
-            st.write(plan)
-    elif nav_view == "Tools":
-        st.write("Calculators & Tools")
-st.sidebar.markdown("<div style='font-size:10px;color:#484f58;'>VP Terminal v2.3</div>", unsafe_allow_html=True)
+elif nav_view == "Backtester":
+    # Simple placeholder or load legacy
+    st.subheader("Backtester")
+    st.info("Legacy Backtester UI")
+elif nav_view == "AI Insights": st.info("AI Insights Placeholder")
+elif nav_view == "AI Report Generator":
+    st.subheader("📄 AI Report Generator")
+    gen = AIReportGenerator()
+    if st.button(f"Generate Report for {ticker}"):
+        path = gen.generate_report(ticker, {})
+        st.success(f"Report Generated: {path}")
