@@ -73,11 +73,11 @@ def set_cat(cat):
     st.session_state['nav_category'] = cat
     # Default views for each category
     defaults = {
-        "Core": "Home", "Technical": "Market Structure", "Volume & Order Flow": "Volume Profile (Legacy)",
-        "Volatility & Risk": "Portfolio Risk", "Fundamental": "Valuation (DCF)", "Institutional": "Institutional Ownership",
-        "Quant & Strategy": "Regime Backtest", "Screeners": "Setup Scanner", "Research & AI": "Backtester"
+        "Core": "home", "Technical": "market_structure", "Volume & Order Flow": "volume_profile",
+        "Volatility & Risk": "portfolio_risk", "Fundamental": "dcf_engine", "Institutional": "institutional_tracker",
+        "Quant & Strategy": "regime_backtest", "Screeners": "setup_scanner", "Research & AI": "backtester"
     }
-    st.session_state['nav_view'] = defaults.get(cat, "Home")
+    st.session_state['nav_view'] = defaults.get(cat, "home")
 
 def set_view(view):
     st.session_state['nav_view'] = view
@@ -196,7 +196,7 @@ ticker = st.session_state['current_ticker']
 nav_view = st.session_state['nav_view']
 
 # 1. CORE
-if nav_view == "Home":
+if nav_view == "home":
     st.subheader("Home Dashboard")
     
     # Initialize Managers
@@ -274,24 +274,49 @@ if nav_view == "Home":
         # ... (Journal Logic) ...
         pass
 
-elif nav_view == "Chart":
+elif nav_view == "chart":
     st.subheader(f"Chart: {ticker}")
     TradingViewWidget.render(ticker)
 
-elif nav_view == "News": render_sentiment_timeline(ticker)
-elif nav_view == "Events": render_econ_impact_overlay(ticker)
+elif nav_view == "news": render_sentiment_timeline(ticker)
+elif nav_view == "events": render_econ_impact_overlay(ticker)
 
 # 2. TECHNICAL
-elif nav_view == "Market Structure": render_market_structure(ticker)
-elif nav_view == "FVG Scanner": render_fvg_scanner(ticker)
+elif nav_view == "market_structure": render_market_structure(ticker)
+elif nav_view == "fvg_scanner": render_fvg_scanner(ticker)
 # ...
-elif nav_view == "Watchlist Scoring":
+elif nav_view == "setup_scanner":
     st.subheader("Watchlist Scoring")
     # ...
 
-elif nav_view == "AI Report Generator":
+elif nav_view == "ai_report":
     st.subheader("AI Report Generator")
     gen = AIReportGenerator()
     if st.button(f"Generate Report for {ticker}"):
         path = gen.generate_report(ticker, {})
         st.success(f"Report Generated: {path}")
+
+# --- 3. MISSING VIEW HANDLERS (Mapped to Imports) ---
+elif nav_view == "mtf_confluence": render_mtf_confluence(ticker)
+elif nav_view == "session_range": render_session_range(ticker)
+elif nav_view == "liquidity_heatmap": render_liquidity_heatmap(ticker)
+elif nav_view == "portfolio_risk": render_portfolio_risk(ticker)
+elif nav_view == "earnings_volatility": render_earnings_volatility(ticker)
+elif nav_view == "vol_surface": render_vol_surface(ticker)
+elif nav_view == "dcf_engine": render_dcf_engine(ticker)
+elif nav_view == "peer_comparison": render_peer_comparison(ticker)
+elif nav_view == "dividend_tracker": render_dividend_tracker(ticker)
+elif nav_view == "insider_tracker": render_insider_tracker(ticker)
+elif nav_view == "short_interest": render_short_interest(ticker)
+elif nav_view == "sentiment_timeline": render_sentiment_timeline(ticker)
+elif nav_view == "regime_backtest": render_regime_backtest(ticker)
+elif nav_view == "rolling_beta": render_rolling_beta(ticker)
+elif nav_view == "factor_model": render_factor_model(ticker)
+elif nav_view == "fundamental_screener": render_fundamental_screener(ticker)
+elif nav_view == "backtester": render_backtester_tab()
+
+# --- 4. CATCH-ALL FOR UNIMPLEMENTED FEATURES ---
+else:
+    st.container().empty() # spacer
+    st.info(f"🚧 **{nav_view.replace('_', ' ').title()}** is currently under construction.")
+    st.caption("This feature is part of the roadmap and will be available in the next update.")
