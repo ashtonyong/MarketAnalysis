@@ -7,7 +7,7 @@ from datetime import datetime
 import time
 
 # --- STYLES & CONFIG ---
-st.set_page_config(layout="wide", page_title="VP Terminal v2.3 Pro (Live)", initial_sidebar_state="expanded")
+st.set_page_config(layout="wide", page_title="VP Terminal v2.5 (Fixed)", initial_sidebar_state="expanded")
 import styles
 import time
 # Force reload of CSS by treating it as dynamic injection
@@ -153,14 +153,19 @@ def render_shell():
     clean_html = re.sub(r'<head.*?>.*?</head>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
     clean_html = re.sub(r'<body.*?>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
     clean_html = re.sub(r'</body>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
+
+    # 3. CRITICAL: Remove ALL whitespace from HTML lines
+    clean_html = "\n".join([line.strip() for line in clean_html.split('\n') if line.strip()])
     
-    # 3. Clean JS (remove comments to avoid Markdown confusion)
+    # 4. Clean JS (remove comments and STRIP INDENTATION)
     # Remove single line comments // ...
     clean_js = re.sub(r'//.*', '', shell_js)
     # Remove multi-line comments /* ... */
     clean_js = re.sub(r'/\*.*?\*/', '', clean_js, flags=re.DOTALL)
+    # Strip indentation from JS lines to prevent Code Block detection
+    clean_js = "\n".join([line.strip() for line in clean_js.split('\n') if line.strip()])
     
-    # 3b. Inject JS - Robust Regex Method matches <script src="app.js"></script>
+    # 5. Inject JS - Robust Regex Method matches <script src="app.js"></script>
     script_pattern = r'<script\s+src=["\']app\.js["\']\s*></script>'
     
     # Combined JS: cleaned app.js + dedented sync_script
@@ -173,7 +178,7 @@ def render_shell():
         # Fallback: strict append
         full_html = clean_html + combined_js
     
-    # 4. Final Safety: Render
+    # 6. Final Safety: Render
     st.markdown(full_html, unsafe_allow_html=True)
 
 render_shell()
