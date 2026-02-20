@@ -191,30 +191,44 @@ def render_shell():
 render_shell()
 
 # --- NAVIGATION SYNC BRIDGE ---
-# We read the state directly from the URL. Our Javascript shell updates the URL
-# via history.pushState and then clicks a hidden button to force Streamlit to resync.
+# This invisible Custom Component receives realtime payloads via window.postMessage from our JS shell
+import os
+import streamlit.components.v1 as components
+comp_dir = os.path.join(os.path.dirname(__file__), "sync_component")
+vp_sync_component = components.declare_component("vp_sync_component", path=comp_dir)
 
-_need_rerun = False
-if "ticker" in st.query_params and st.query_params["ticker"].upper() != st.session_state.get('current_ticker'):
-    st.session_state['current_ticker'] = st.query_params["ticker"].upper()
-    _need_rerun = True
-
-if "view" in st.query_params and st.query_params["view"].lower() != st.session_state.get('nav_view'):
-    st.session_state['nav_view'] = st.query_params["view"].lower()
-    _need_rerun = True
-
-if "cat" in st.query_params and st.query_params["cat"].lower() != st.session_state.get('nav_category'):
-    st.session_state['nav_category'] = st.query_params["cat"].lower()
-    _need_rerun = True
-
-# If the URL had values different from session state, we update session state.
-# We don't necessarily have to rerun here because we are reading the params *before* rendering the views,
-# so the views below will automatically use the updated session state!
-
+# Initialize component in sidebar (it will auto-hide via its own JS logic and CSS)
 with st.sidebar:
-    # This button is completely invisible due to styles.py (sidebar width=0, visibility=hidden)
-    # Javascript calls .click() on it to silently force a backend rerun.
-    st.button("V2_SyncState", key="sync_btn")
+    sync_data = vp_sync_component(default=None)
+
+if sync_data:
+    last_timestamp = st.session_state.get('last_sync_timestamp', 0)
+    current_timestamp = sync_data.get('timestamp', 0)
+    
+    if current_timestamp > last_timestamp:
+        st.session_state['last_sync_timestamp'] = current_timestamp
+        needs_rerun = False
+        
+        new_ticker = sync_data.get("ticker", "").upper()
+        if new_ticker and new_ticker != st.session_state.get('current_ticker'):
+            st.session_state['current_ticker'] = new_ticker
+            st.query_params["ticker"] = new_ticker
+            needs_rerun = True
+            
+        new_view = sync_data.get("viewId", "").lower()
+        if new_view and new_view != st.session_state.get('nav_view'):
+            st.session_state['nav_view'] = new_view
+            st.query_params["view"] = new_view
+            needs_rerun = True
+            
+        new_cat = sync_data.get("category", "").lower()
+        if new_cat and new_cat != st.session_state.get('nav_category'):
+            st.session_state['nav_category'] = new_cat
+            st.query_params["cat"] = new_cat
+            needs_rerun = True
+
+        if needs_rerun:
+            st.rerun()
 
 # --- SIDEBAR NAVIGATION (Hidden) ---
 def set_view(view, cat=None):

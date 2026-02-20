@@ -13,12 +13,20 @@
         }
 
         function init() {
+            console.log("[VP Sync] Initializing Streamlit Component...");
             sendMessageToStreamlitClient("streamlit:componentReady", { apiVersion: 1 });
-            sendMessageToStreamlitClient("streamlit:setFrameHeight", { height: 0 });
+        }
+
+        function setFrameHeight(height) {
+            sendMessageToStreamlitClient("streamlit:setFrameHeight", { height: height });
         }
 
         window.addEventListener("message", function (event) {
-            if (event.data.type === "vp_sync") {
+            if (event.data.type === "streamlit:render") {
+                console.log("[VP Sync] Streamlit Render Event Received. Completing handshare.");
+                setFrameHeight(0); // Acknowledge render and set height 0 to hide it
+            } else if (event.data.type === "vp_sync") {
+                console.log("[VP Sync] Custom Payload Received from JS Shell:", event.data.payload);
                 sendMessageToStreamlitClient("streamlit:setComponentValue", { value: event.data.payload });
             }
         });
@@ -27,6 +35,6 @@
     </script>
 </head>
 
-<body></body>
+<body style="margin: 0; padding: 0;"></body>
 
 </html>

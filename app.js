@@ -347,30 +347,35 @@ function wireTopbar() {
    HOOKS — connect these to your existing Python/Streamlit logic
 ══════════════════════════════════════════════════════════ */
 
-// Bridge to Streamlit via Query Parameters and React DOM Mutation
+// Bridge to Streamlit via Native Custom Component Protocol
 function syncToStreamlit() {
-    console.log('[VP] Syncing via History API + V2_SyncState Button:', state.ticker, state.viewId);
+    console.log('[VP] Syncing to Streamlit Backend via Component Iframe Hook...');
 
-    // 1. Instantly mutate the Parent URL Query Parameters without a page reload
+    // Fallback URL update for direct linking and refreshes
     const url = new URL(window.parent.location.href);
     url.searchParams.set('ticker', state.ticker);
     url.searchParams.set('view', state.viewId);
     url.searchParams.set('cat', state.category);
     window.parent.history.pushState({}, '', url);
 
-    // 2. Click the hidden Streamlit button to force the Python Backend to respool and read the new URL
+    // Broadcast sync payload to the invisible Streamlit custom component iframe
     if (window.parent && window.parent.document) {
-        // Streamlit's React rendering is fast, but adding a micro-delay ensures
-        // the pushState has registered in the browser history before the Python thread executes.
-        setTimeout(() => {
-            const buttons = window.parent.document.querySelectorAll('button');
-            for (let i = 0; i < buttons.length; i++) {
-                if (buttons[i].textContent.includes('V2_SyncState')) {
-                    buttons[i].click();
-                    break;
-                }
+        const iframes = window.parent.document.querySelectorAll('iframe');
+        iframes.forEach(iframe => {
+            try {
+                iframe.contentWindow.postMessage({
+                    type: "vp_sync",
+                    payload: {
+                        ticker: state.ticker,
+                        viewId: state.viewId,
+                        category: state.category,
+                        timestamp: Date.now()
+                    }
+                }, "*");
+            } catch (e) {
+                console.warn("Could not post to iframe", e);
             }
-        }, 50);
+        });
     }
 }
 
