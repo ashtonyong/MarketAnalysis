@@ -195,10 +195,29 @@ render_shell()
 with st.container():
     # Only show if not fully hidden by CSS, but styles.py hides this container
     new_ticker = st.text_input("Ticker", st.session_state['current_ticker'], key="hidden_ticker", label_visibility="collapsed")
+    new_view = st.text_input("View", st.session_state['nav_view'], key="hidden_view", label_visibility="collapsed")
+    new_cat = st.text_input("Cat", st.session_state['nav_category'], key="hidden_cat", label_visibility="collapsed")
+    
+    # Hidden button for JS to click to force a generic execution
+    st.button("SyncState", key="sync_btn")
+    
+    needs_rerun = False
     if new_ticker != st.session_state['current_ticker']:
         st.session_state['current_ticker'] = new_ticker.upper()
-        # Update query param manually to trigger JS shell update on next load
         st.query_params["ticker"] = st.session_state['current_ticker']
+        needs_rerun = True
+        
+    if new_view != st.session_state['nav_view']:
+        st.session_state['nav_view'] = new_view
+        st.query_params["view"] = st.session_state['nav_view']
+        needs_rerun = True
+        
+    if new_cat != st.session_state['nav_category']:
+        st.session_state['nav_category'] = new_cat
+        st.query_params["cat"] = st.session_state['nav_category']
+        needs_rerun = True
+        
+    if needs_rerun:
         st.rerun()
 
 # --- SIDEBAR NAVIGATION (Hidden) ---
@@ -214,7 +233,7 @@ st.session_state['nav_view'] = st.session_state['nav_view'].lower()
 nav_view = st.session_state['nav_view']
 
 # DEBUG: Show current view state to verify rendering
-# st.error(f"DEBUG: Current View = '{nav_view}' | Ticker = '{ticker}'")
+# st.error(f"DEBUG: Current View = '{nav_view}' | hidden_view = '{st.session_state.get('hidden_view', 'NONE')}' | new_view = '{st.session_state.get('nav_view')}'")
 
 # 1. CORE
 if nav_view == "home":

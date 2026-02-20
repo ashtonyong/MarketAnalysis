@@ -347,26 +347,51 @@ function wireTopbar() {
    HOOKS — connect these to your existing Python/Streamlit logic
 ══════════════════════════════════════════════════════════ */
 
-// Bridge to Streamlit via Query Parameters
+// Bridge to Streamlit via Query Parameters and React DOM Mutation
 function syncToStreamlit() {
     console.log('[VP] Syncing to Streamlit:', state.ticker, state.viewId);
+
+    // First, update URL directly so refresh persists
     const url = new URL(window.location.href);
     url.searchParams.set('ticker', state.ticker);
     url.searchParams.set('view', state.viewId);
     url.searchParams.set('cat', state.category);
     window.history.pushState({}, '', url);
 
-    // Attempt to trigger Streamlit rerun by clicking a hidden refresh button if it exists
-    // or just let the query param change be detected on next interaction.
-    // In many Streamlit environments, window.parent.location update triggers it.
-    window.parent.postMessage({
-        type: 'streamlit:set_query_params',
-        query_params: {
-            ticker: state.ticker,
-            view: state.viewId,
-            cat: state.category
+    // Second, find the hidden Streamlit inputs that trigger the Python backend
+    // Since we are injected via an iframe directly into window.parent.document, we can query it
+    if (window.parent && window.parent.document) {
+        const setStreamlitInput = (ariaLabel, value) => {
+            const input = window.parent.document.querySelector(`input[aria-label="${ariaLabel}"]`);
+            if (input && input.value !== value) {
+                // React 16+ overrides the value setter, need to call the native one
+                const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+                nativeInputValueSetter.call(input, value);
+
+                // Dispatch exactly what React listens for
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+
+                // Force submission by simulating Enter key
+                input.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, keyCode: 13, key: 'Enter' }));
+                input.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, cancelable: true, keyCode: 13, key: 'Enter' }));
+            }
+        };
+
+        setStreamlitInput('Ticker', state.ticker);
+        setStreamlitInput('View', state.viewId);
+        setStreamlitInput('Cat', state.category);
+
+        // Find and click the hidden sync button to force Streamlit to transmit the inputs
+        const buttons = window.parent.document.querySelectorAll('button');
+        for (let i = 0; i < buttons.length; i++) {
+            if (buttons[i].textContent.includes('SyncState')) {
+                // Slight delay ensures React has processed the input values before clicking
+                setTimeout(() => buttons[i].click(), 50);
+                break;
+            }
         }
-    }, '*');
+    }
 }
 
 // Called when ticker changes — wire to your existing ticker handler
