@@ -24,10 +24,16 @@ def get_css():
 }}
 footer {{ visibility: hidden; height: 0; }}
 
-.block-container {{
-    padding: 2rem 3rem !important; /* Add comfortable spacing from edges */
+.block-container, [data-testid="block-container"], [data-testid="stMainBlockContainer"] {{
+    padding-left: 3rem !important;
+    padding-right: 3rem !important; 
+    padding-top: 2rem !important;
+    padding-bottom: 2rem !important;
     max-width: 100% !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
     margin: 0 !important;
+    overflow-x: hidden !important;
 }}
 
 #MainMenu {{ visibility: hidden; }}
@@ -60,6 +66,7 @@ header {{ visibility: hidden; }}
 /* Hide default Streamlit padding/margin on main area */
 [data-testid="stAppViewMain"] {{
     padding-top: 0 !important;
+    padding-right: 3rem !important;
 }}
 
 /* CRITICAL: Ensure actual metrics/charts are above the fixed #app shell */
