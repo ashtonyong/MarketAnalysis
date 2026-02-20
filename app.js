@@ -251,6 +251,7 @@ function renderNav() {
             state.navLabel = el.dataset.label;
             renderNav();
             showView(state.viewId, el.dataset.label);
+            if (typeof syncToStreamlit === 'function') syncToStreamlit();
         });
     });
 }
@@ -271,6 +272,7 @@ function selectCategory(key) {
     renderRail();
     renderNav();
     showView(firstItem.viewId, firstItem.label);
+    if (typeof syncToStreamlit === 'function') syncToStreamlit();
 }
 
 /* ══════════════════════════════════════════════════════════

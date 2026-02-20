@@ -179,7 +179,11 @@ def render_shell():
         full_html = clean_html + combined_js
     
     # 6. Final Safety: Render
-    st.markdown(full_html, unsafe_allow_html=True)
+    # WRAP EVERYTHING in a single parent div with NO newlines.
+    # This FORCES Streamlit's Markdown parser to treat the ENTIRE block (including the <script> tags) 
+    # as raw HTML, preventing it from interpreting JS or internal divs as text paragraphs.
+    final_output = f"<div id='vp-terminal-root'>{full_html}</div>"
+    st.markdown(final_output, unsafe_allow_html=True)
 
 render_shell()
 
