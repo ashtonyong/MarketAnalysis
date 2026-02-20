@@ -25,7 +25,7 @@ def get_css():
 footer {{ visibility: hidden; height: 0; }}
 
 .block-container {{
-    padding: 0 !important;
+    padding: 2rem 3rem !important; /* Add comfortable spacing from edges */
     max-width: 100% !important;
     margin: 0 !important;
 }}
