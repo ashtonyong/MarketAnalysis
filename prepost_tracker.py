@@ -73,7 +73,7 @@ class PrePostTracker:
         return pd.DataFrame(results).sort_values("Change %", ascending=False)
 
 def render_prepost_tracker(tickers: list):
-    st.markdown("## 🌙 Pre/Post Market Tracker")
+    st.markdown("##  Pre/Post Market Tracker")
     st.caption("Monitor price action in extended trading hours.")
     
     if st.button("Refresh Data", key="refresh_prepost"):

@@ -30,7 +30,7 @@ def fetch_short_interest_data(ticker):
 
 def render_short_interest(ticker):
     """Render the Short Interest Monitor tab."""
-    st.markdown("### 🩳 Short Interest Monitor")
+    st.markdown("###  Short Interest Monitor")
     st.caption("Track short selling activity and potential squeeze setups.")
     
     col1, col2 = st.columns([1, 3])
@@ -138,4 +138,4 @@ def render_short_interest(ticker):
                 start_p = hist['Close'].iloc[0]
                 end_p = hist['Close'].iloc[-1]
                 if end_p > start_p * 1.05:
-                    st.success("🚨 **POTENTIAL SHORT SQUEEZE DETECTED** (High Short % + Rising Price)")
+                    st.success(" **POTENTIAL SHORT SQUEEZE DETECTED** (High Short % + Rising Price)")

@@ -54,7 +54,7 @@ def run_factor_model(returns, ticker):
 
 def render_factor_model(ticker):
     """Render the Fama-French Factor Model tab."""
-    st.markdown("### 📚 Fama-French 3-Factor Model (Proxy)")
+    st.markdown("###  Fama-French 3-Factor Model (Proxy)")
     st.caption("Decompose returns into Market, Size, and Value risks using ETF proxies.")
     
     if st.button("Run Regression", key="run_ff"):

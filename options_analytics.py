@@ -55,7 +55,7 @@ class OptionsAnalytics:
         return strikes[min_pain_idx]
 
 def render_options_analytics(ticker):
-    st.markdown("## ⛓️ Options Chain Analytics")
+    st.markdown("## ️ Options Chain Analytics")
     st.caption("Open Interest distribution and 'Max Pain' levels.")
     
     oa = OptionsAnalytics(ticker)

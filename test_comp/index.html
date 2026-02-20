@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <script>
+        function sendMessageToStreamlitClient(type, data) {
+            var outData = Object.assign({
+                isStreamlitMessage: true,
+                type: type,
+            }, data);
+            window.parent.postMessage(outData, "*");
+        }
+
+        function init() {
+            console.log("[VP Sync] Initializing Component...");
+            sendMessageToStreamlitClient("streamlit:componentReady", { apiVersion: 1 });
+        }
+
+        function setFrameHeight(height) {
+            sendMessageToStreamlitClient("streamlit:setFrameHeight", { height: height });
+        }
+
+        window.addEventListener("message", function (event) {
+            if (event.data.type === "streamlit:render") {
+                console.log("[VP Sync] Streamlit Render Event Received.");
+                setFrameHeight(0); // Acknowledge render and set height 0
+            } else if (event.data.type === "vp_sync") {
+                console.log("[VP Sync] Custom Payload Received from JS Shell:", event.data.payload);
+                sendMessageToStreamlitClient("streamlit:setComponentValue", { value: event.data.payload });
+            }
+        });
+
+        window.addEventListener("load", init);
+    </script>
+</head>
+
+<body></body>
+
+</html>

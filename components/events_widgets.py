@@ -6,7 +6,7 @@ class EventsWidgets:
     @staticmethod
     def render_detailed_calendar():
         """Render the wide economic calendar at the top of Home Tab."""
-        st.markdown("### 🗓️ Economic Calendar")
+        st.markdown("### ️ Economic Calendar")
         html = """
         <div class="tradingview-widget-container">
           <div class="tradingview-widget-container__widget"></div>

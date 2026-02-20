@@ -119,7 +119,7 @@ def calc_safety_score(payout_ratio, debt_to_equity, fcf, revenue_growth) -> int:
     return max(0, min(100, score))
 
 def render_dividend_tracker(ticker: str):
-    st.markdown("## 💰 Dividend Tracker")
+    st.markdown("##  Dividend Tracker")
     st.caption("Comprehensive analysis of dividend yield, growth, and safety.")
 
     with st.spinner("Fetching dividend data..."):
@@ -204,7 +204,7 @@ def render_dividend_tracker(ticker: str):
             st.plotly_chart(fig, use_container_width=True)
             
             # Dividend Calendar logic (Estimation)
-            st.subheader("📅 Estimated Dividend Calendar")
+            st.subheader(" Estimated Dividend Calendar")
             last_payment = df_div.index[-1]
             # Detect frequency
             if len(df_div) > 4:

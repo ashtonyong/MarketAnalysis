@@ -349,47 +349,47 @@ function wireTopbar() {
 
 // Bridge to Streamlit via Native Custom Component Protocol
 function syncToStreamlit() {
-    console.log('[VP] Syncing to Streamlit Backend via Component Iframe Hook...');
+    console.log('[VP] Syncing to Streamlit Backend via Recursive Broadcast...');
 
-    // Attempt to update the URL directly. On Streamlit Cloud this might be blocked,
-    // so we wrap it in a try...catch to ensure the rest of the payload sender executes.
+    // Attempt to update the URL directly.
     try {
         const url = new URL(window.location.href);
         url.searchParams.set('ticker', state.ticker);
         url.searchParams.set('view', state.viewId);
         url.searchParams.set('cat', state.category);
         window.history.pushState({}, '', url);
-
-        // Fallback for outer wrapper if accessible
-        if (window.parent && window.parent !== window) {
-            const outerUrl = new URL(window.parent.location.href);
-            outerUrl.searchParams.set('ticker', state.ticker);
-            outerUrl.searchParams.set('view', state.viewId);
-            outerUrl.searchParams.set('cat', state.category);
-            window.parent.history.pushState({}, '', outerUrl);
-        }
     } catch (e) {
-        console.warn("[VP] URL pushState ignored (Streamlit Cloud sandbox overrides this):", e);
+        console.warn("[VP] URL pushState ignored:", e);
     }
 
-    // Broadcast sync payload to the invisible Streamlit custom component iframe.
-    // Because app.js is injected to run on the Streamlit root Document, 'document' is the Streamlit Document.
-    const iframes = document.querySelectorAll('iframe');
-    iframes.forEach(iframe => {
-        try {
-            iframe.contentWindow.postMessage({
-                type: "vp_sync",
-                payload: {
-                    ticker: state.ticker,
-                    viewId: state.viewId,
-                    category: state.category,
-                    timestamp: Date.now()
-                }
-            }, "*");
-        } catch (e) {
-            console.warn("Could not post to iframe", e);
+    // Prepare payload
+    const msg = {
+        type: "vp_sync",
+        payload: {
+            ticker: state.ticker,
+            viewId: state.viewId,
+            category: state.category,
+            timestamp: Date.now()
         }
-    });
+    };
+
+    // Recursive broadcaster to punch through Streamlit Cloud's nested iframes.
+    // 'window.frames' and 'postMessage' are permitted across origins safely.
+    function broadcast(win) {
+        if (!win || !win.frames) return;
+        for (let i = 0; i < win.frames.length; i++) {
+            try {
+                win.frames[i].postMessage(msg, "*");
+            } catch (e) { }
+            // Recurse into sub-frames
+            try {
+                broadcast(win.frames[i]);
+            } catch (e) { }
+        }
+    }
+
+    // Start broadcast from the top-most accessible window
+    broadcast(window);
 }
 
 // Called when ticker changes — wire to your existing ticker handler

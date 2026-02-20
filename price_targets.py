@@ -30,7 +30,7 @@ def fetch_price_targets(ticker: str) -> dict:
         return {"error": str(e)}
 
 def render_price_targets(ticker: str):
-    st.markdown("## 🎯 Analysis Consensus & Price Targets")
+    st.markdown("##  Analysis Consensus & Price Targets")
     st.caption(f"Wall Street analyst price targets and recommendations for **{ticker}**.")
 
     with st.spinner("Fetching analyst data..."):

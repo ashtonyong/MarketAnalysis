@@ -110,7 +110,7 @@ def get_implied_move(ticker):
 
 def render_earnings_volatility(ticker):
     """Render the Earnings Volatility Predictor tab."""
-    st.markdown("### 📆 Earnings Volatility Predictor")
+    st.markdown("###  Earnings Volatility Predictor")
     st.caption("Compare historical post-earnings moves vs current options-implied expected move.")
     
     col1, col2 = st.columns([1, 2])

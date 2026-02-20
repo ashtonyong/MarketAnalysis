@@ -88,11 +88,11 @@ class TimeAndSalesAnalyzer:
         """Interpret what a large print means"""
         agg = row['aggressive']
         if agg == 'BUY':
-            return "🟢 Large aggressive BUYING - Institutions accumulating"
+            return " Large aggressive BUYING - Institutions accumulating"
         elif agg == 'SELL':
-            return "🔴 Large aggressive SELLING - Institutions distributing"
+            return " Large aggressive SELLING - Institutions distributing"
         else:
-            return "⚪ Large neutral print - Likely block trade"
+            return " Large neutral print - Likely block trade"
     
     def analyze_activity_at_level(self, price_level: float, tolerance_pct: float = 0.1) -> Dict:
         """

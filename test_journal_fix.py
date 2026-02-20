@@ -31,7 +31,7 @@ def test_journal():
     assert not recent.empty
     assert 'ticker' in recent.columns
     
-    print("✅ TradeJournal tests passed!")
+    print(" TradeJournal tests passed!")
 
 if __name__ == "__main__":
     test_journal()

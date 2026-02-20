@@ -77,7 +77,7 @@ class PairsTrader:
         }
 
 def render_pairs_trading(default_ticker):
-    st.markdown("## ⚖️ Pairs Trading Scanner")
+    st.markdown("## ️ Pairs Trading Scanner")
     st.caption("Analyze the statistical relationship (Cointegration/Correlation) between two assets.")
     
     col1, col2 = st.columns(2)

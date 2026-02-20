@@ -102,7 +102,7 @@ def scan_fvgs(df):
 
 def render_fvg_scanner(ticker):
     """Render the FVG Scanner tab."""
-    st.markdown("### 📐 Fair Value Gap (FVG) Scanner")
+    st.markdown("###  Fair Value Gap (FVG) Scanner")
     st.caption("Identify unfilled price imbalances (magnets for price action).")
     
     col1, col2 = st.columns([1, 4])

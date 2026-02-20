@@ -91,7 +91,7 @@ class SetupScanner:
         return pd.DataFrame(results).sort_values("Score", ascending=False)
 
 def render_setup_scanner(default_tickers: list):
-    st.markdown("## 🛰️ Multi-Ticker Setup Scanner")
+    st.markdown("## ️ Multi-Ticker Setup Scanner")
     st.caption("Scans watchlists for high-probability setups using the Quant Engine scoring model.")
     
     # Input

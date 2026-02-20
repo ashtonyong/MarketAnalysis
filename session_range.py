@@ -72,7 +72,7 @@ def get_session_ranges(df, session_name):
 
 def render_session_range(ticker):
     """Render the Session Range Tracker tab."""
-    st.markdown("### 📅 Session Range Tracker")
+    st.markdown("###  Session Range Tracker")
     st.caption("Visualizes Asian, London, and New York sessions to identify liquidity pools.")
     
     col1, col2 = st.columns([1, 3])
@@ -85,9 +85,9 @@ def render_session_range(ticker):
         
         st.info("""
         **Color Key:**
-        - 🟡 Asian: 00:00 - 08:00 UTC
-        - 🔵 London: 07:00 - 16:00 UTC
-        - 🔴 New York: 13:00 - 22:00 UTC
+        -  Asian: 00:00 - 08:00 UTC
+        -  London: 07:00 - 16:00 UTC
+        -  New York: 13:00 - 22:00 UTC
         """)
 
     with col2:

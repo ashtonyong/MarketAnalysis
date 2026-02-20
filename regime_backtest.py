@@ -76,7 +76,7 @@ def run_regime_backtest(df, strategy_type, regime_filter):
 
 def render_regime_backtest(ticker):
     """Render the Regime-Conditional Backtest tab."""
-    st.markdown("### 🚦 Regime-Conditional Backtest")
+    st.markdown("###  Regime-Conditional Backtest")
     st.caption("Test how strategies perform under specific market conditions.")
     
     c1, c2 = st.columns([1, 3])

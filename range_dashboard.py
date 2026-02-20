@@ -50,7 +50,7 @@ def fetch_range_data(ticker: str) -> dict:
         return {"error": str(e)}
 
 def render_range_dashboard(ticker: str):
-    st.markdown("## 📏 52-Week Range & Trend Dashboard")
+    st.markdown("##  52-Week Range & Trend Dashboard")
     st.caption(f"Price position relative to yearly range and key moving averages for **{ticker}**.")
 
     with st.spinner("Analyzing trend data..."):

@@ -74,6 +74,19 @@ h1, h2, h3, h4, h5, h6, p, li, span, div {{
     color: #e6edf3 !important;
 }}
 
+/* Expand Streamlit Tabs spacing to prevent crowded layout */
+[data-testid="stTabs"] {{
+    margin-top: 2rem !important;
+    margin-bottom: 2rem !important;
+}}
+button[data-baseweb="tab"] {{
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+    margin-right: 1rem !important;
+}}
+
 </style>
     """)
     return "\n".join([line.strip() for line in style_block.split('\n') if line.strip()])

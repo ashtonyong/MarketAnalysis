@@ -64,7 +64,7 @@ class VolumeProfileVisualizer:
         self._plot_metrics_panel(ax_metrics, metrics)
         
         # Overall title
-        position_emoji = "🟢" if "ABOVE" in metrics['position'] else "🔴" if "BELOW" in metrics['position'] else "🟡"
+        position_emoji = "" if "ABOVE" in metrics['position'] else "" if "BELOW" in metrics['position'] else ""
         self.fig.suptitle(
             f"{position_emoji} {metrics['ticker']} - Volume Profile Analysis",
             fontsize=16, fontweight='bold'

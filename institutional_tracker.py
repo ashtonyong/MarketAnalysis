@@ -30,7 +30,7 @@ class InstitutionalTracker:
             return {}
 
 def render_institutional_tracker(ticker: str):
-    st.markdown("## 🏛️ Institutional Ownership")
+    st.markdown("## ️ Institutional Ownership")
     st.caption("Breakdown of major holders, institutional funds, and mutual funds.")
     
     tracker = InstitutionalTracker(ticker)

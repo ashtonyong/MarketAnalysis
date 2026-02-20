@@ -81,7 +81,7 @@ class ValuationHistory:
             return pd.DataFrame()
 
 def render_valuation_history(ticker: str):
-    st.markdown("## 📊 Valuation History (P/E Ratio)")
+    st.markdown("##  Valuation History (P/E Ratio)")
     st.caption("Historical Price-to-Earnings Ratio derived from 5-year price and quarterly earnings data.")
     
     vh = ValuationHistory(ticker)

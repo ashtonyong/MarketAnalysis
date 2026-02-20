@@ -49,7 +49,7 @@ def get_confluence_score(daily, weekly, monthly):
 
 def render_mtf_confluence(ticker):
     """Render the MTF Confluence Score tab."""
-    st.markdown("### 🔀 Multi-Timeframe Confluence")
+    st.markdown("###  Multi-Timeframe Confluence")
     st.caption("Analyzes Daily, Weekly, and Monthly Volume Profiles to find aligning levels.")
     
     if st.button("Run Confluence Analysis", key="run_mtf"):

@@ -50,17 +50,17 @@ def test_features():
         print(f"Report generated at: {output}")
         
         if os.path.exists(output):
-            print("✅ PDF file exists.")
+            print(" PDF file exists.")
             # Clean up
             os.remove(output)
             print("Cleaned up test file.")
         else:
-            print("❌ PDF file not found.")
+            print(" PDF file not found.")
             
     except Exception as e:
         print(f"AIReportGenerator Error: {e}")
         
-    print("\n✅ Verification Complete!")
+    print("\n Verification Complete!")
 
 if __name__ == "__main__":
     test_features()

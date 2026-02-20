@@ -75,7 +75,7 @@ class NewsSentiment:
         return df
 
 def render_sentiment_timeline(ticker: str):
-    st.markdown("## 📰 News Sentiment Timeline")
+    st.markdown("##  News Sentiment Timeline")
     st.caption(f"Sentiment analysis of recent news headlines for **{ticker}**.")
     
     analyzer = NewsSentiment(ticker)

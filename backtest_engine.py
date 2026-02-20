@@ -50,7 +50,7 @@ class RegimeBacktester:
         return df.dropna()
 
 def render_regime_backtest(ticker):
-    st.markdown("## 🛡️ Regime-Adaptive Backtest")
+    st.markdown("## ️ Regime-Adaptive Backtest")
     st.caption("Compares a static Buy & Hold strategy vs. a Regime-Adaptive strategy.")
     st.info("Adaptive Strategy: Long only when Trend is UP (SMA50 > SMA200) and Volatility is Stable (< 40%).")
     

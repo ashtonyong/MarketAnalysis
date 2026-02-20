@@ -293,25 +293,25 @@ class RegimeDetector:
         # Strategy recommendations
         recommendations = {
             'TRENDING_UP': [
-                '✅ Breakout Retest (long only)',
-                '✅ POC Bounce (long bias)',
-                '❌ Avoid mean reversion shorts'
+                ' Breakout Retest (long only)',
+                ' POC Bounce (long bias)',
+                ' Avoid mean reversion shorts'
             ],
             'TRENDING_DOWN': [
-                '✅ Breakout Retest (short only)',
-                '✅ Failed Auction (short bias)',
-                '❌ Avoid mean reversion longs'
+                ' Breakout Retest (short only)',
+                ' Failed Auction (short bias)',
+                ' Avoid mean reversion longs'
             ],
             'RANGING': [
-                '✅ Value Area Reversion (BEST)',
-                '✅ POC Bounce',
-                '✅ Z-Score Mean Reversion',
-                '❌ Avoid breakout strategies'
+                ' Value Area Reversion (BEST)',
+                ' POC Bounce',
+                ' Z-Score Mean Reversion',
+                ' Avoid breakout strategies'
             ],
             'VOLATILE': [
-                '⚠️ Reduce all position sizes by 50%',
-                '⚠️ Widen stops to 2x normal',
-                '❌ Avoid new positions if possible'
+                '️ Reduce all position sizes by 50%',
+                '️ Widen stops to 2x normal',
+                ' Avoid new positions if possible'
             ]
         }
 
@@ -967,7 +967,7 @@ class StatisticalEdgeCalculator:
             'verdict': verdict,
             'tradeable': tradeable,
             'recommendation': (
-                f"{'✅ Trade this strategy' if tradeable else '❌ Do not trade'}: "
+                f"{' Trade this strategy' if tradeable else ' Do not trade'}: "
                 f"{verdict}"
             )
         }
@@ -1050,12 +1050,12 @@ class CorrelationAnalyzer:
         recs = []
         for pair in high_corr:
             recs.append(
-                f"⚠️ {pair['ticker1']} + {pair['ticker2']}: "
+                f"️ {pair['ticker1']} + {pair['ticker2']}: "
                 f"Correlation {pair['correlation']} - Pick one!"
             )
         for hedge in hedges:
             recs.append(
-                f"✅ {hedge['ticker1']} + {hedge['ticker2']}: "
+                f" {hedge['ticker1']} + {hedge['ticker2']}: "
                 f"Correlation {hedge['correlation']} - Good hedge pair"
             )
         return recs if recs else ["No significant correlations found"]

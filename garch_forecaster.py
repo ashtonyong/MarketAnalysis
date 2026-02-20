@@ -72,7 +72,7 @@ class GarchForecaster:
         }
 
 def render_garch_forecaster(ticker):
-    st.markdown("## 🔮 Volatility Forecaster (GARCH)")
+    st.markdown("##  Volatility Forecaster (GARCH)")
     st.caption("Forecasts future volatility using GARCH(1,1) or EWMA. Used to estimate risk and option pricing.")
     
     forecaster = GarchForecaster(ticker)

@@ -112,7 +112,7 @@ class RSRating:
         return int(rating), df, scores
 
 def render_rs_rating(ticker: str):
-    st.markdown(f"## 🚀 Relative Strength (RS) Rating: {ticker}")
+    st.markdown(f"##  Relative Strength (RS) Rating: {ticker}")
     st.caption("Technical rating comparing price performance against the S&P 500 (SPY).")
     
     rs = RSRating(ticker)

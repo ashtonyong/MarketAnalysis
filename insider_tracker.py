@@ -21,7 +21,7 @@ def fetch_insider_data(ticker):
 
 def render_insider_tracker(ticker):
     """Render the Insider Trading Tracker tab."""
-    st.markdown("### 👔 Insider Trading Tracker")
+    st.markdown("###  Insider Trading Tracker")
     st.caption("Monitor buying and selling activity by company executives and directors.")
     
     if st.button("Fetch Insider Data", key="run_insider"):

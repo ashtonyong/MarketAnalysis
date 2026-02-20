@@ -68,7 +68,7 @@ def build_volume_matrix(ticker: str, period: str, interval: str):
 
 
 def render_liquidity_heatmap(ticker: str):
-    st.markdown("## 💧 Liquidity Heatmap (Historical)")
+    st.markdown("##  Liquidity Heatmap (Historical)")
     st.caption("Visualize volume density over time to identify sticky price levels.")
 
     # User controls
@@ -177,4 +177,4 @@ def render_liquidity_heatmap(ticker: str):
     )
 
     st.plotly_chart(fig, use_container_width=True)
-    st.info("🔆 Brighter regions indicate high volume interaction (Liquidity Pools).")
+    st.info(" Brighter regions indicate high volume interaction (Liquidity Pools).")

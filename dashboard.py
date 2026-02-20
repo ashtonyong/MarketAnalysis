@@ -370,5 +370,5 @@ elif nav_view == "backtester": render_backtester_tab()
 # --- 4. CATCH-ALL FOR UNIMPLEMENTED FEATURES ---
 else:
     st.container().empty() # spacer
-    st.info(f"🚧 **{nav_view.replace('_', ' ').title()}** is currently under construction.")
+    st.info(f" **{nav_view.replace('_', ' ').title()}** is currently under construction.")
     st.caption("This feature is part of the roadmap and will be available in the next update.")

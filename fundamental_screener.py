@@ -57,7 +57,7 @@ def fetch_screener_data(tickers):
 
 def render_fundamental_screener(ticker):
     """Render the Fundamental Screener tab."""
-    st.markdown("### 🔍 Fundamental Screener")
+    st.markdown("###  Fundamental Screener")
     st.caption(f"Screening Universe: {len(TICKER_UNIVERSE)} Major US Stocks")
     
     col_filter, col_res = st.columns([1, 4])
@@ -119,7 +119,7 @@ def render_fundamental_screener(ticker):
                     # Top Picks Card
                     if not results.empty:
                         best = results.iloc[0]
-                        st.success(f"💎 **Top Pick:** {best['Ticker']} ({best['Sector']}) - P/E: {best['P/E']:.1f}, PEG: {best['PEG']}")
+                        st.success(f" **Top Pick:** {best['Ticker']} ({best['Sector']}) - P/E: {best['P/E']:.1f}, PEG: {best['PEG']}")
                 else:
                     st.error("Data processing error.")
             else:

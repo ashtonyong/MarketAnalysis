@@ -12,7 +12,7 @@ from volume_profile_engine import VolumeProfileEngine
 def render_backtester_tab(ticker: str, period: str):
     """Full professional backtester UI"""
 
-    st.header("⚡ Strategy Backtester")
+    st.header(" Strategy Backtester")
 
     engine = BacktestEngine()
 
@@ -37,7 +37,7 @@ def render_backtester_tab(ticker: str, period: str):
     col1b, col2b = st.columns(2)
     run_single = col1b.button("▶ Run Strategy", type="primary",
                                use_container_width=True)
-    run_all = col2b.button("⚡ Compare All 5 Strategies",
+    run_all = col2b.button(" Compare All 5 Strategies",
                            use_container_width=True)
 
     if run_single:
@@ -49,7 +49,7 @@ def render_backtester_tab(ticker: str, period: str):
             st.error(f"Error: {results['error']}")
         else:
             # ---- RESULTS HEADER ----
-            st.success(f"✅ Backtest complete: {results['total_trades']} trades")
+            st.success(f" Backtest complete: {results['total_trades']} trades")
 
             # Key metrics row
             c1, c2, c3, c4, c5, c6 = st.columns(6)
@@ -70,12 +70,12 @@ def render_backtester_tab(ticker: str, period: str):
 
             # Tabs for detailed results
             t1, t2, t3, t4, t5, t6 = st.tabs([
-                "📈 Equity Curve",
-                "🎲 Monte Carlo",
-                "📊 Statistical Edge",
-                "🎯 Kelly Sizing",
-                "🌊 Market Regime",
-                "📋 Trade Log"
+                " Equity Curve",
+                " Monte Carlo",
+                " Statistical Edge",
+                " Kelly Sizing",
+                " Market Regime",
+                " Trade Log"
             ])
 
             with t1:
@@ -142,11 +142,11 @@ def render_backtester_tab(ticker: str, period: str):
                 if edge and 'error' not in edge:
                     verdict = edge.get('verdict', '')
                     if 'EXCELLENT' in verdict or 'GOOD' in verdict:
-                        st.success(f"✅ {edge.get('recommendation', '')}")
+                        st.success(f" {edge.get('recommendation', '')}")
                     elif 'MARGINAL' in verdict:
-                        st.warning(f"⚠️ {edge.get('recommendation', '')}")
+                        st.warning(f"️ {edge.get('recommendation', '')}")
                     else:
-                        st.error(f"❌ {edge.get('recommendation', '')}")
+                        st.error(f" {edge.get('recommendation', '')}")
 
                     c1, c2, c3, c4 = st.columns(4)
                     c1.metric("Win Rate",
@@ -168,7 +168,7 @@ def render_backtester_tab(ticker: str, period: str):
                 st.subheader("Kelly Criterion Position Sizing")
                 kelly = results.get('kelly_criterion', {})
                 if kelly and 'error' not in kelly:
-                    st.info(f"💡 {kelly.get('recommendation', '')}")
+                    st.info(f" {kelly.get('recommendation', '')}")
                     c1, c2, c3 = st.columns(3)
                     c1.metric("Full Kelly",
                               f"{kelly.get('full_kelly_pct', 0):.1f}%")
@@ -187,11 +187,11 @@ def render_backtester_tab(ticker: str, period: str):
                 if regime:
                     reg = regime.get('regime', 'UNKNOWN')
                     if 'RANGING' in reg:
-                        st.success(f"📊 Regime: **{reg}**")
+                        st.success(f" Regime: **{reg}**")
                     elif 'TRENDING' in reg:
-                        st.info(f"📈 Regime: **{reg}**")
+                        st.info(f" Regime: **{reg}**")
                     else:
-                        st.warning(f"⚡ Regime: **{reg}**")
+                        st.warning(f" Regime: **{reg}**")
 
                     st.write(f"**{regime.get('description', '')}**")
                     st.write(f"Best Strategy: {regime.get('best_strategy', '')}")
@@ -227,7 +227,7 @@ def render_backtester_tab(ticker: str, period: str):
                     # Export
                     csv = df_log.to_csv(index=False)
                     st.download_button(
-                        "📥 Download Trade Log",
+                        " Download Trade Log",
                         csv,
                         f"trades_{strategy}_{ticker}.csv",
                         "text/csv"
@@ -240,7 +240,7 @@ def render_backtester_tab(ticker: str, period: str):
 
         if 'comparison' in comparison and comparison['comparison']:
             best = comparison['best_strategy']
-            st.success(f"✅ Best strategy: **{best['strategy']}**")
+            st.success(f" Best strategy: **{best['strategy']}**")
 
             df_comp = pd.DataFrame(comparison['comparison'])
             df_comp.columns = ['Strategy', 'Trades', 'Win Rate %',
@@ -252,12 +252,12 @@ def render_backtester_tab(ticker: str, period: str):
 
     # ---- STANDALONE QUANT TOOLS ----
     st.divider()
-    st.header("🔬 Quant Analysis Tools")
+    st.header(" Quant Analysis Tools")
 
     qt1, qt2, qt3 = st.tabs([
-        "🎲 Monte Carlo",
-        "📐 Z-Score",
-        "🔗 Correlation"
+        " Monte Carlo",
+        " Z-Score",
+        " Correlation"
     ])
 
     with qt1:
@@ -273,7 +273,7 @@ def render_backtester_tab(ticker: str, period: str):
         mc_trades = c4.slider("Trades to Simulate", 20, 500, 100)
         mc_cap = c5.number_input("Starting Capital ($)", value=10000)
 
-        if st.button("🎲 Run Monte Carlo"):
+        if st.button(" Run Monte Carlo"):
             mc = MonteCarloSimulator()
             mc_results = mc.run(mc_wr/100, mc_win, mc_loss,
                                mc_trades, 5000, mc_cap)
@@ -292,7 +292,7 @@ def render_backtester_tab(ticker: str, period: str):
         st.subheader("Z-Score Calculator")
         st.caption("See how statistically extreme current price is")
 
-        if st.button("📐 Calculate Z-Score"):
+        if st.button(" Calculate Z-Score"):
             vpe = VolumeProfileEngine(ticker, period='3mo')
             metric_data = vpe.get_all_metrics()
 
@@ -301,9 +301,9 @@ def render_backtester_tab(ticker: str, period: str):
 
             if z_results.get('signal') in ['STRONGLY_OVERBOUGHT',
                                            'STRONGLY_OVERSOLD']:
-                st.error(f"⚠️ {z_results['signal']}: {z_results['action']}")
+                st.error(f"️ {z_results['signal']}: {z_results['action']}")
             else:
-                st.info(f"📊 {z_results['signal']}: {z_results['action']}")
+                st.info(f" {z_results['signal']}: {z_results['action']}")
 
             c1, c2, c3 = st.columns(3)
             c1.metric("Z-Score", f"{z_results['current_z_score']:.3f}")
@@ -320,7 +320,7 @@ def render_backtester_tab(ticker: str, period: str):
         corr_input = st.text_input("Tickers (comma-separated)",
                                    default_tickers)
 
-        if st.button("🔗 Analyze Correlations"):
+        if st.button(" Analyze Correlations"):
             tickers_list = [t.strip() for t in corr_input.split(',')]
             analyzer = CorrelationAnalyzer()
 
@@ -328,14 +328,14 @@ def render_backtester_tab(ticker: str, period: str):
                 corr_results = analyzer.calculate(tickers_list, '3mo')
 
             if 'error' not in corr_results:
-                st.subheader("⚠️ Highly Correlated Pairs (Avoid Both)")
+                st.subheader("️ Highly Correlated Pairs (Avoid Both)")
                 for pair in corr_results.get('high_correlation_pairs', []):
                     st.warning(
                         f"{pair['ticker1']} + {pair['ticker2']}: "
                         f"r={pair['correlation']} - {pair['warning']}"
                     )
 
-                st.subheader("✅ Good Hedge Pairs")
+                st.subheader(" Good Hedge Pairs")
                 for hedge in corr_results.get('hedge_pairs', []):
                     st.success(
                         f"{hedge['ticker1']} + {hedge['ticker2']}: "

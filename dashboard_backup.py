@@ -188,7 +188,7 @@ TV_TICKER_MAP = {
 # --- Sidebar Branding & Navigation ---
 st.sidebar.markdown("""
 <div style='display: flex; align-items: center; gap: 10px; margin-bottom: 20px;'>
-    <h1 style='margin: 0; font-size: 22px;'>📊 VP Terminal</h1>
+    <h1 style='margin: 0; font-size: 22px;'> VP Terminal</h1>
 </div>
 """, unsafe_allow_html=True)
 
@@ -922,7 +922,7 @@ with tab1:
                         st.error(f"Comparison failed: {e}")
 
         # Toast notification
-        st.toast(f"Analysis complete for {ticker}", icon="✅")
+        st.toast(f"Analysis complete for {ticker}", icon="")
 
         # 2. Charts
         # Create subplots: Price on top, Volume on bottom

@@ -46,7 +46,7 @@ class AnalystRatings:
         }
 
 def render_analyst_ratings(ticker: str):
-    st.markdown("## 🎯 Analyst Upgrades & Downgrades")
+    st.markdown("##  Analyst Upgrades & Downgrades")
     st.caption("Detailed history of analyst recommendations and rating changes over the last year.")
     
     ar = AnalystRatings(ticker)

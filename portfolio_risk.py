@@ -68,7 +68,7 @@ def perform_efficient_frontier(df, num_portfolios=1000):
 
 def render_portfolio_risk(ticker):
     """Render the Portfolio Risk Dashboard tab."""
-    st.markdown("### 🛡️ Portfolio Risk Dashboard")
+    st.markdown("### ️ Portfolio Risk Dashboard")
     st.caption("Analyze Volatility, Correlation, and Value at Risk (VaR).")
     
     col_input, col_res = st.columns([1, 2])

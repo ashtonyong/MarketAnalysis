@@ -80,12 +80,12 @@ def fetch_peer_metrics(tickers: list) -> pd.DataFrame:
     return pd.DataFrame(metrics_data)
 
 def render_peer_comparison(ticker: str):
-    st.markdown("## 🏆 Peer Comparison Engine")
+    st.markdown("##  Peer Comparison Engine")
     
     # 1. Get Peers
     auto_peers = get_peers(ticker)
     
-    with st.expander("⚙️ Comparison Settings", expanded=not auto_peers):
+    with st.expander("️ Comparison Settings", expanded=not auto_peers):
         val = ",".join(auto_peers) if auto_peers else ""
         peers_input = st.text_input("Peer Tickers (comma separated)", value=val)
         if st.button("Apply Peers"):
@@ -210,11 +210,11 @@ def render_peer_comparison(ticker: str):
             return x
 
     # 4. Render Table
-    st.markdown("### 📊 Valuation & Profitability Matrix")
+    st.markdown("###  Valuation & Profitability Matrix")
     st.dataframe(df_T.style.apply(color_scale, axis=1).format("{:.2f}"), use_container_width=True)
     
     # 5. Radar Chart
-    st.markdown("### 🕸️ Relative Strength Radar")
+    st.markdown("### ️ Relative Strength Radar")
     
     # Normalize metrics 0-1 for radar
     # Must inverse valuation metrics

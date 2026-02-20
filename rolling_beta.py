@@ -40,7 +40,7 @@ def calculate_rolling_stats(returns, ticker, benchmark, window):
 
 def render_rolling_beta(ticker):
     """Render the Rolling Beta & Correlation tab."""
-    st.markdown("### 📈 Rolling Beta & Correlation")
+    st.markdown("###  Rolling Beta & Correlation")
     st.caption("Analyze how the asset moves relative to a benchmark over time.")
     
     col1, col2 = st.columns([1, 3])

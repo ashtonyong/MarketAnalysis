@@ -36,7 +36,7 @@ class TelegramAlertBot:
     def send_alert(self, ticker: str, alert_type: str, level: float,
                    current_price: float, direction: str, action: str = "") -> bool:
         """Send a formatted price alert."""
-        emoji = "🔴" if direction == "DOWN" else "🟢" if direction == "UP" else "🟡"
+        emoji = "" if direction == "DOWN" else "" if direction == "UP" else ""
         msg = (
             f"{emoji} <b>ALERT: {ticker}</b>\n\n"
             f"<b>Type:</b> {alert_type}\n"
@@ -53,9 +53,9 @@ class TelegramAlertBot:
     def send_scan_summary(self, results: List[Dict]) -> bool:
         """Send a summary of scanner results."""
         if not results:
-            return self.send_message("📊 Scanner: No results.")
+            return self.send_message(" Scanner: No results.")
 
-        lines = ["📊 <b>Scanner Results</b>\n"]
+        lines = [" <b>Scanner Results</b>\n"]
         for i, r in enumerate(results[:5], 1):
             lines.append(
                 f"{i}. <b>{r['ticker']}</b> — Score: {r['opportunity_score']}/100 "
@@ -170,13 +170,13 @@ class AlertMonitor:
 
     def monitor_loop(self):
         """Continuously monitor. Runs forever until interrupted."""
-        print(f"🔔 Alert Monitor started — watching {len(self.watchlist)} tickers")
+        print(f" Alert Monitor started — watching {len(self.watchlist)} tickers")
         print(f"   Check interval: {self.check_interval}s")
         print(f"   Press Ctrl+C to stop\n")
 
         # Initial scan to set baseline
         self.bot.send_message(
-            f"🔔 <b>Alert Monitor Started</b>\n"
+            f" <b>Alert Monitor Started</b>\n"
             f"Watching: {', '.join(self.watchlist)}\n"
             f"Interval: {self.check_interval}s"
         )
@@ -192,8 +192,8 @@ class AlertMonitor:
                 else:
                     print(f"[{datetime.now().strftime('%H:%M:%S')}] No alerts")
             except KeyboardInterrupt:
-                print("\n🛑 Monitor stopped.")
-                self.bot.send_message("🛑 <b>Alert Monitor Stopped</b>")
+                print("\n Monitor stopped.")
+                self.bot.send_message(" <b>Alert Monitor Stopped</b>")
                 break
             except Exception as e:
                 print(f"[Loop Error] {e}")
@@ -204,7 +204,7 @@ if __name__ == "__main__":
     from alert_config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, WATCHLIST, CHECK_INTERVAL_SECONDS
 
     if TELEGRAM_BOT_TOKEN == "YOUR_BOT_TOKEN_HERE":
-        print("⚠️  Please configure alert_config.py with your Telegram bot token and chat ID!")
+        print("️  Please configure alert_config.py with your Telegram bot token and chat ID!")
         print()
         print("Steps:")
         print("1. Open Telegram and search for @BotFather")
@@ -217,10 +217,10 @@ if __name__ == "__main__":
 
         # Send test message
         print("Sending test message...")
-        if bot.send_message("✅ <b>Volume Profile Alerts Connected!</b>"):
-            print("✅ Test message sent! Check your Telegram.")
+        if bot.send_message(" <b>Volume Profile Alerts Connected!</b>"):
+            print(" Test message sent! Check your Telegram.")
         else:
-            print("❌ Failed to send. Check your token and chat ID.")
+            print(" Failed to send. Check your token and chat ID.")
 
         # Start monitoring
         monitor = AlertMonitor(bot, WATCHLIST, check_interval=CHECK_INTERVAL_SECONDS)

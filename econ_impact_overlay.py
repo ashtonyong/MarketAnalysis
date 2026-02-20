@@ -75,7 +75,7 @@ def fetch_price_history(ticker):
         return pd.DataFrame()
 
 def render_econ_impact_overlay(ticker: str):
-    st.markdown("## 📅 Economic Impact Overlay")
+    st.markdown("##  Economic Impact Overlay")
     st.caption(f"Visualizing price action around major economic events for **{ticker}**.")
     
     col1, col2 = st.columns([3, 1])
@@ -146,7 +146,7 @@ def render_econ_impact_overlay(ticker: str):
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
-        st.markdown("### 📋 Event List")
+        st.markdown("###  Event List")
         if not events:
             st.info("No major events in this period.")
         else:

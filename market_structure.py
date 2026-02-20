@@ -104,7 +104,7 @@ def detect_structure_events(df, swing_highs, swing_lows):
     
 def render_market_structure(ticker):
     """Render the Market Structure Detector tab."""
-    st.markdown("### 🏗️ Market Structure Detector")
+    st.markdown("### ️ Market Structure Detector")
     st.caption("Auto-detect Swing Highs, Swing Lows, BOS, and CHoCH.")
     
     df = fetch_structure_data(ticker)

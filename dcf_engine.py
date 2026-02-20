@@ -95,7 +95,7 @@ def calculate_dcf(data, growth_rate, terminal_growth, discount_rate):
 
 def render_dcf_engine(ticker):
     """Render the DCF Valuation Engine tab."""
-    st.markdown("### 🧮 DCF Valuation Engine")
+    st.markdown("###  DCF Valuation Engine")
     st.caption("Estimate Intrinsic Value using Discounted Cash Flow analysis.")
     
     col_input, col_res = st.columns([1, 2])

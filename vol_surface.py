@@ -70,7 +70,7 @@ def fetch_vol_surface_data(ticker):
 
 def render_vol_surface(ticker):
     """Render the Volatility Surface Visualizer tab."""
-    st.markdown("### 🏔️ Volatility Surface Visualizer")
+    st.markdown("### ️ Volatility Surface Visualizer")
     st.caption("3D view of Implied Volatility across Strikes and Expirations.")
     
     if st.button("Generate Surface", key="run_vol_surf"):
