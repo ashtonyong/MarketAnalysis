@@ -351,32 +351,45 @@ function wireTopbar() {
 function syncToStreamlit() {
     console.log('[VP] Syncing to Streamlit Backend via Component Iframe Hook...');
 
-    // Fallback URL update for direct linking and refreshes
-    const url = new URL(window.parent.location.href);
-    url.searchParams.set('ticker', state.ticker);
-    url.searchParams.set('view', state.viewId);
-    url.searchParams.set('cat', state.category);
-    window.parent.history.pushState({}, '', url);
+    // Attempt to update the URL directly. On Streamlit Cloud this might be blocked,
+    // so we wrap it in a try...catch to ensure the rest of the payload sender executes.
+    try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('ticker', state.ticker);
+        url.searchParams.set('view', state.viewId);
+        url.searchParams.set('cat', state.category);
+        window.history.pushState({}, '', url);
 
-    // Broadcast sync payload to the invisible Streamlit custom component iframe
-    if (window.parent && window.parent.document) {
-        const iframes = window.parent.document.querySelectorAll('iframe');
-        iframes.forEach(iframe => {
-            try {
-                iframe.contentWindow.postMessage({
-                    type: "vp_sync",
-                    payload: {
-                        ticker: state.ticker,
-                        viewId: state.viewId,
-                        category: state.category,
-                        timestamp: Date.now()
-                    }
-                }, "*");
-            } catch (e) {
-                console.warn("Could not post to iframe", e);
-            }
-        });
+        // Fallback for outer wrapper if accessible
+        if (window.parent && window.parent !== window) {
+            const outerUrl = new URL(window.parent.location.href);
+            outerUrl.searchParams.set('ticker', state.ticker);
+            outerUrl.searchParams.set('view', state.viewId);
+            outerUrl.searchParams.set('cat', state.category);
+            window.parent.history.pushState({}, '', outerUrl);
+        }
+    } catch (e) {
+        console.warn("[VP] URL pushState ignored (Streamlit Cloud sandbox overrides this):", e);
     }
+
+    // Broadcast sync payload to the invisible Streamlit custom component iframe.
+    // Because app.js is injected to run on the Streamlit root Document, 'document' is the Streamlit Document.
+    const iframes = document.querySelectorAll('iframe');
+    iframes.forEach(iframe => {
+        try {
+            iframe.contentWindow.postMessage({
+                type: "vp_sync",
+                payload: {
+                    ticker: state.ticker,
+                    viewId: state.viewId,
+                    category: state.category,
+                    timestamp: Date.now()
+                }
+            }, "*");
+        } catch (e) {
+            console.warn("Could not post to iframe", e);
+        }
+    });
 }
 
 // Called when ticker changes — wire to your existing ticker handler
