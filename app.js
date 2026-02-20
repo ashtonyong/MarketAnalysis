@@ -349,33 +349,28 @@ function wireTopbar() {
 
 // Bridge to Streamlit via Query Parameters and React DOM Mutation
 function syncToStreamlit() {
-    console.log('[VP] Syncing to Streamlit via Component Bridge:', state.ticker, state.viewId);
+    console.log('[VP] Syncing via History API + V2_SyncState Button:', state.ticker, state.viewId);
 
-    // First, update URL directly so refresh persists
-    const url = new URL(window.location.href);
+    // 1. Instantly mutate the Parent URL Query Parameters without a page reload
+    const url = new URL(window.parent.location.href);
     url.searchParams.set('ticker', state.ticker);
     url.searchParams.set('view', state.viewId);
     url.searchParams.set('cat', state.category);
-    window.history.pushState({}, '', url);
+    window.parent.history.pushState({}, '', url);
 
-    // Broadcast sync payload to all Streamlit custom component iframes
+    // 2. Click the hidden Streamlit button to force the Python Backend to respool and read the new URL
     if (window.parent && window.parent.document) {
-        const iframes = window.parent.document.querySelectorAll('iframe');
-        iframes.forEach(iframe => {
-            try {
-                iframe.contentWindow.postMessage({
-                    type: "vp_sync",
-                    payload: {
-                        ticker: state.ticker,
-                        viewId: state.viewId,
-                        category: state.category,
-                        timestamp: Date.now()
-                    }
-                }, "*");
-            } catch (e) {
-                console.warn("Could not post to iframe", e);
+        // Streamlit's React rendering is fast, but adding a micro-delay ensures
+        // the pushState has registered in the browser history before the Python thread executes.
+        setTimeout(() => {
+            const buttons = window.parent.document.querySelectorAll('button');
+            for (let i = 0; i < buttons.length; i++) {
+                if (buttons[i].textContent.includes('V2_SyncState')) {
+                    buttons[i].click();
+                    break;
+                }
             }
-        });
+        }, 50);
     }
 }
 
