@@ -112,8 +112,9 @@ def render_shell():
         return
 
     # Sync state from streamlit to shell
-    # This ensures shell reflects Streamlit's initial or updated state
-    sync_script = f"""
+    # Use textwrap.dedent to prevent Markdown from treating indented script as code block
+    import textwrap
+    sync_script = textwrap.dedent(f"""
     <script>
     window.addEventListener('load', () => {{
         if (window.state) {{
@@ -137,15 +138,15 @@ def render_shell():
         }}
     }});
     </script>
-    """
+    """)
     
     # --- CLEAN SHELL INJECTION ---
     # Strip document level tags as Streamlit only allows body/div snippets in st.markdown
     import re
-    # 1. Remove comments
+    # 1. Remove HTML comments
     clean_html = re.sub(r'<!--.*?-->', '', shell_html, flags=re.DOTALL)
     
-    # 2. Extract only the #app content (including the div itself)
+    # 2. Extract only the body content
     clean_html = re.sub(r'<!DOCTYPE.*?>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
     clean_html = re.sub(r'<html.*?>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
     clean_html = re.sub(r'</html>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
@@ -153,17 +154,26 @@ def render_shell():
     clean_html = re.sub(r'<body.*?>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
     clean_html = re.sub(r'</body>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
     
-    # 3. Inject JS - Safer Method
-    # Replaced aggressive whitespace stripping with simple injection
-    js_tag = '<script src="app.js"></script>'
+    # 3. Clean JS (remove comments to avoid Markdown confusion)
+    # Remove single line comments // ...
+    clean_js = re.sub(r'//.*', '', shell_js)
+    # Remove multi-line comments /* ... */
+    clean_js = re.sub(r'/\*.*?\*/', '', clean_js, flags=re.DOTALL)
     
-    if js_tag in clean_html:
-        full_html = clean_html.replace(js_tag, f'<script>{shell_js}</script>{sync_script}')
+    # 3b. Inject JS - Robust Regex Method matches <script src="app.js"></script>
+    script_pattern = r'<script\s+src=["\']app\.js["\']\s*></script>'
+    
+    # Combined JS: cleaned app.js + dedented sync_script
+    combined_js = f'<script>{clean_js}</script>{sync_script}'
+    
+    if re.search(script_pattern, clean_html, re.IGNORECASE):
+        # Precise replacement
+        full_html = re.sub(script_pattern, lambda x: combined_js, clean_html, flags=re.IGNORECASE)
     else:
-        # Fallback: Just append it.
-        full_html = clean_html + f'<script>{shell_js}</script>{sync_script}'
+        # Fallback: strict append
+        full_html = clean_html + combined_js
     
-    # 5. Final Safety: Wrap in a div if not already (it should be)
+    # 4. Final Safety: Render
     st.markdown(full_html, unsafe_allow_html=True)
 
 render_shell()
