@@ -349,7 +349,7 @@ function wireTopbar() {
 
 // Bridge to Streamlit via Query Parameters and React DOM Mutation
 function syncToStreamlit() {
-    console.log('[VP] Syncing to Streamlit:', state.ticker, state.viewId);
+    console.log('[VP] Syncing to Streamlit via Component Bridge:', state.ticker, state.viewId);
 
     // First, update URL directly so refresh persists
     const url = new URL(window.location.href);
@@ -358,39 +358,24 @@ function syncToStreamlit() {
     url.searchParams.set('cat', state.category);
     window.history.pushState({}, '', url);
 
-    // Second, find the hidden Streamlit inputs that trigger the Python backend
-    // Since we are injected via an iframe directly into window.parent.document, we can query it
+    // Broadcast sync payload to all Streamlit custom component iframes
     if (window.parent && window.parent.document) {
-        const setStreamlitInput = (ariaLabel, value) => {
-            const input = window.parent.document.querySelector(`input[aria-label="${ariaLabel}"]`);
-            if (input && input.value !== value) {
-                // React 16+ overrides the value setter, need to call the native one
-                const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
-                nativeInputValueSetter.call(input, value);
-
-                // Dispatch exactly what React listens for
-                input.dispatchEvent(new Event('input', { bubbles: true }));
-                input.dispatchEvent(new Event('change', { bubbles: true }));
-
-                // Force submission by simulating Enter key
-                input.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, keyCode: 13, key: 'Enter' }));
-                input.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, cancelable: true, keyCode: 13, key: 'Enter' }));
+        const iframes = window.parent.document.querySelectorAll('iframe');
+        iframes.forEach(iframe => {
+            try {
+                iframe.contentWindow.postMessage({
+                    type: "vp_sync",
+                    payload: {
+                        ticker: state.ticker,
+                        viewId: state.viewId,
+                        category: state.category,
+                        timestamp: Date.now()
+                    }
+                }, "*");
+            } catch (e) {
+                console.warn("Could not post to iframe", e);
             }
-        };
-
-        setStreamlitInput('Ticker', state.ticker);
-        setStreamlitInput('View', state.viewId);
-        setStreamlitInput('Cat', state.category);
-
-        // Find and click the hidden sync button to force Streamlit to transmit the inputs
-        const buttons = window.parent.document.querySelectorAll('button');
-        for (let i = 0; i < buttons.length; i++) {
-            if (buttons[i].textContent.includes('SyncState')) {
-                // Slight delay ensures React has processed the input values before clicking
-                setTimeout(() => buttons[i].click(), 50);
-                break;
-            }
-        }
+        });
     }
 }
 

@@ -190,35 +190,43 @@ def render_shell():
 
 render_shell()
 
-# --- TOPBAR CONTROLS SYNC (Hidden) ---
-# We keep these for state persistence and to allow Streamlit-side updates
-with st.container():
-    # Only show if not fully hidden by CSS, but styles.py hides this container
-    new_ticker = st.text_input("Ticker", st.session_state['current_ticker'], key="hidden_ticker", label_visibility="collapsed")
-    new_view = st.text_input("View", st.session_state['nav_view'], key="hidden_view", label_visibility="collapsed")
-    new_cat = st.text_input("Cat", st.session_state['nav_category'], key="hidden_cat", label_visibility="collapsed")
+# --- NAVIGATION SYNC BRIDGE ---
+# This invisible component listens for JS messages and returns the data payload instantly
+import os
+import streamlit.components.v1 as components
+comp_dir = os.path.join(os.path.dirname(__file__), "sync_component")
+vp_sync_component = components.declare_component("vp_sync_component", path=comp_dir)
+
+sync_data = vp_sync_component(default=None)
+
+if sync_data:
+    last_timestamp = st.session_state.get('last_sync_timestamp', 0)
+    current_timestamp = sync_data.get('timestamp', 0)
     
-    # Hidden button for JS to click to force a generic execution
-    st.button("SyncState", key="sync_btn")
-    
-    needs_rerun = False
-    if new_ticker != st.session_state['current_ticker']:
-        st.session_state['current_ticker'] = new_ticker.upper()
-        st.query_params["ticker"] = st.session_state['current_ticker']
-        needs_rerun = True
+    if current_timestamp > last_timestamp:
+        st.session_state['last_sync_timestamp'] = current_timestamp
+        needs_rerun = False
         
-    if new_view != st.session_state['nav_view']:
-        st.session_state['nav_view'] = new_view
-        st.query_params["view"] = st.session_state['nav_view']
-        needs_rerun = True
-        
-    if new_cat != st.session_state['nav_category']:
-        st.session_state['nav_category'] = new_cat
-        st.query_params["cat"] = st.session_state['nav_category']
-        needs_rerun = True
-        
-    if needs_rerun:
-        st.rerun()
+        new_ticker = sync_data.get("ticker", "").upper()
+        if new_ticker and new_ticker != st.session_state['current_ticker']:
+            st.session_state['current_ticker'] = new_ticker
+            st.query_params["ticker"] = new_ticker
+            needs_rerun = True
+            
+        new_view = sync_data.get("viewId", "").lower()
+        if new_view and new_view != st.session_state['nav_view']:
+            st.session_state['nav_view'] = new_view
+            st.query_params["view"] = new_view
+            needs_rerun = True
+            
+        new_cat = sync_data.get("category", "").lower()
+        if new_cat and new_cat != st.session_state['nav_category']:
+            st.session_state['nav_category'] = new_cat
+            st.query_params["cat"] = new_cat
+            needs_rerun = True
+
+        if needs_rerun:
+            st.rerun()
 
 # --- SIDEBAR NAVIGATION (Hidden) ---
 def set_view(view, cat=None):

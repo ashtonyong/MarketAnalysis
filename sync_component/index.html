@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <script>
+        function sendMessageToStreamlitClient(type, data) {
+            var outData = Object.assign({
+                isStreamlitMessage: true,
+                type: type,
+            }, data);
+            window.parent.postMessage(outData, "*");
+        }
+
+        function init() {
+            sendMessageToStreamlitClient("streamlit:componentReady", { apiVersion: 1 });
+            sendMessageToStreamlitClient("streamlit:setFrameHeight", { height: 0 });
+        }
+
+        window.addEventListener("message", function (event) {
+            if (event.data.type === "vp_sync") {
+                sendMessageToStreamlitClient("streamlit:setComponentValue", { value: event.data.payload });
+            }
+        });
+
+        window.addEventListener("load", init);
+    </script>
+</head>
+
+<body></body>
+
+</html>
