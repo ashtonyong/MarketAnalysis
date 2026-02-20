@@ -24,7 +24,11 @@ def get_css():
 }}
 footer {{ visibility: hidden; height: 0; }}
 
-.block-container, [data-testid="block-container"], [data-testid="stMainBlockContainer"] {{
+.block-container, 
+[data-testid="block-container"], 
+[data-testid="stMainBlockContainer"],
+.stAppViewMain,
+[data-testid="stAppViewMain"] {{
     padding-left: 3rem !important;
     padding-right: 3rem !important; 
     padding-top: 2rem !important;
@@ -32,16 +36,8 @@ footer {{ visibility: hidden; height: 0; }}
     max-width: 100% !important;
     width: 100% !important;
     box-sizing: border-box !important;
-    margin: 0 !important;
+    margin: 0 auto !important;
     overflow-x: hidden !important;
-}}
-
-#MainMenu {{ visibility: hidden; }}
-header {{ visibility: hidden; }}
-
-/* Position Streamlit's main content area into the shell's #main */
-[data-testid="stVerticalBlock"] {{
-    gap: 0 !important;
 }}
 
 /* Ensure the custom shell is visible */
@@ -52,21 +48,18 @@ header {{ visibility: hidden; }}
 }}
 
 /* Make Streamlit elements sit on top of the shell but appear as if inside #main */
-.stMain {{
+.stMain, [data-testid="stMain"] {{
     position: fixed;
     left: 266px; /* rail(52) + panel(214) */
     top: 46px;   /* topbar */
     right: 0;
     bottom: 0;
     overflow-y: auto;
+    overflow-x: hidden;
     z-index: 20;
     background: transparent !important;
-}}
-
-/* Hide default Streamlit padding/margin on main area */
-[data-testid="stAppViewMain"] {{
-    padding-top: 0 !important;
-    padding-right: 3rem !important;
+    padding-right: 2rem !important; /* Hard fallback padding on the scroll container itself */
+    box-sizing: border-box !important;
 }}
 
 /* CRITICAL: Ensure actual metrics/charts are above the fixed #app shell */
