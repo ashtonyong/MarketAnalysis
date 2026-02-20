@@ -146,8 +146,6 @@ def render_shell():
     clean_html = re.sub(r'<!--.*?-->', '', shell_html, flags=re.DOTALL)
     
     # 2. Extract only the #app content (including the div itself)
-    # We look for <div id="app"> ... </div> but regex for matching balanced tags is hard.
-    # Instead, let's just strip the known preamble.
     clean_html = re.sub(r'<!DOCTYPE.*?>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
     clean_html = re.sub(r'<html.*?>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
     clean_html = re.sub(r'</html>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
@@ -155,20 +153,14 @@ def render_shell():
     clean_html = re.sub(r'<body.*?>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
     clean_html = re.sub(r'</body>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
     
-    # 3. Aggressive whitespace cleanup:
-    # Remove leading spaces on every line to avoid code block detection
-    lines = [line.strip() for line in clean_html.split('\n') if line.strip()]
-    clean_html = "".join(lines) # Join without newlines to be safe
-    
-    # 4. Inject JS
-    # We simply replace the script tag if found, OR append if not found to be safe.
-    # The file has <script src="app.js"></script>.
+    # 3. Inject JS - Safer Method
+    # Replaced aggressive whitespace stripping with simple injection
     js_tag = '<script src="app.js"></script>'
     
     if js_tag in clean_html:
         full_html = clean_html.replace(js_tag, f'<script>{shell_js}</script>{sync_script}')
     else:
-        # Fallback: Just append it. The original tag might be mangled by minification but browser ignores 404s.
+        # Fallback: Just append it.
         full_html = clean_html + f'<script>{shell_js}</script>{sync_script}'
     
     # 5. Final Safety: Wrap in a div if not already (it should be)
