@@ -112,33 +112,26 @@ def render_shell():
         return
 
     # Sync state from streamlit to shell
-    # Use textwrap.dedent to prevent Markdown from treating indented script as code block
-    import textwrap
-    sync_script = textwrap.dedent(f"""
-    <script>
-    window.addEventListener('load', () => {{
-        if (window.state) {{
-            window.state.ticker = "{st.session_state['current_ticker']}";
-            window.state.viewId = "{st.session_state['nav_view']}";
-            let catKey = "{st.session_state['nav_category'].lower().replace(' ', '_').replace('&_', '')}";
-            // Handle special mapping for categories
-            if (catKey === "volume_order_flow") catKey = "volume";
-            if (catKey === "volatility_risk") catKey = "volatility";
-            if (catKey === "research_ai") catKey = "research";
-            
-            window.state.category = catKey;
-            
-            if (typeof renderRail === 'function') renderRail();
-            if (typeof renderNav === 'function') renderNav();
-            if (typeof showView === 'function') showView(window.state.viewId, "{st.session_state['nav_view']}");
-            
-            // Update ticker input
-            const ti = document.getElementById('tickerInput');
-            if (ti) ti.value = window.state.ticker;
-        }}
-    }});
-    </script>
-    """)
+    # Extremely dense, single-line IIFE with strictly matched braces to bypass Streamlit's Markdown parser
+    cat_key = st.session_state['nav_category'].lower().replace(' ', '_').replace('&_', '')
+    sync_script = (
+        f"<script>(function(){{"
+        f"if(window.state){{"
+        f"window.state.ticker='{st.session_state['current_ticker']}';"
+        f"window.state.viewId='{st.session_state['nav_view']}';"
+        f"let catKey='{cat_key}';"
+        f"if(catKey==='volume_order_flow')catKey='volume';"
+        f"if(catKey==='volatility_risk')catKey='volatility';"
+        f"if(catKey==='research_ai')catKey='research';"
+        f"window.state.category=catKey;"
+        f"if(typeof renderRail==='function')renderRail();"
+        f"if(typeof renderNav==='function')renderNav();"
+        f"if(typeof showView==='function')showView(window.state.viewId,'{st.session_state['nav_view']}');"
+        f"const ti=document.getElementById('tickerInput');"
+        f"if(ti)ti.value=window.state.ticker;"
+        f"}}"
+        f"}})();</script>"
+    )
     
     # --- CLEAN SHELL INJECTION ---
     # Strip document level tags as Streamlit only allows body/div snippets in st.markdown
@@ -154,36 +147,46 @@ def render_shell():
     clean_html = re.sub(r'<body.*?>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
     clean_html = re.sub(r'</body>', '', clean_html, flags=re.IGNORECASE | re.DOTALL)
 
-    # 3. CRITICAL: Remove ALL whitespace from HTML lines
-    clean_html = "\n".join([line.strip() for line in clean_html.split('\n') if line.strip()])
+    # 3. Compile the exact Javascript payload
+    combined_js = shell_js + "\n" + sync_script.replace('<script>', '').replace('</script>', '')
     
-    # 4. Clean JS (remove comments and STRIP INDENTATION)
-    # Remove single line comments // ...
-    clean_js = re.sub(r'//.*', '', shell_js)
-    # Remove multi-line comments /* ... */
-    clean_js = re.sub(r'/\*.*?\*/', '', clean_js, flags=re.DOTALL)
-    # Strip indentation from JS lines to prevent Code Block detection
-    clean_js = "\n".join([line.strip() for line in clean_js.split('\n') if line.strip()])
-    
-    # 5. Inject JS - Robust Regex Method matches <script src="app.js"></script>
+    # 4. Integrate JS into the HTML Shell directly
     script_pattern = r'<script\s+src=["\']app\.js["\']\s*></script>'
+    full_html = re.sub(script_pattern, f"<script>{combined_js}</script>", clean_html, flags=re.IGNORECASE)
     
-    # Combined JS: cleaned app.js + dedented sync_script
-    combined_js = f'<script>{clean_js}</script>{sync_script}'
+    # 5. Base64 Encode the ENTIRE payload to protect it
+    import base64
+    b64_payload = base64.b64encode(full_html.encode('utf-8')).decode('utf-8')
     
-    if re.search(script_pattern, clean_html, re.IGNORECASE):
-        # Precise replacement
-        full_html = re.sub(script_pattern, lambda x: combined_js, clean_html, flags=re.IGNORECASE)
-    else:
-        # Fallback: strict append
-        full_html = clean_html + combined_js
-    
-    # 6. Final Safety: Render
-    # WRAP EVERYTHING in a single parent div with NO newlines.
-    # This FORCES Streamlit's Markdown parser to treat the ENTIRE block (including the <script> tags) 
-    # as raw HTML, preventing it from interpreting JS or internal divs as text paragraphs.
-    final_output = f"<div id='vp-terminal-root'>{full_html}</div>"
-    st.markdown(final_output, unsafe_allow_html=True)
+    # 6. Inject via a tiny hidden Component Iframe that manipulates the Parent DOM
+    import streamlit.components.v1 as components
+    injector_js = f"""
+    <script>
+        // Use a slight delay to ensure Streamlit's initial render is stable
+        setTimeout(() => {{
+            if (!window.parent.document.getElementById('vp-terminal-root')) {{
+                const b64Data = "{b64_payload}";
+                // Decode base64 to Unicode string safely
+                const rawHtml = decodeURIComponent(escape(window.atob(b64Data)));
+                
+                const root = window.parent.document.createElement('div');
+                root.id = 'vp-terminal-root';
+                root.innerHTML = rawHtml;
+                
+                // Note: innerHTML does not execute scripts. We must extract and run them manually.
+                window.parent.document.body.appendChild(root);
+                
+                const scripts = root.getElementsByTagName('script');
+                for (let i = 0; i < scripts.length; i++) {{
+                    const newScript = window.parent.document.createElement('script');
+                    newScript.textContent = scripts[i].textContent;
+                    window.parent.document.body.appendChild(newScript);
+                }}
+            }}
+        }}, 100);
+    </script>
+    """
+    components.html(injector_js, height=0, width=0)
 
 render_shell()
 
@@ -294,7 +297,7 @@ if nav_view == "home":
 
 elif nav_view == "chart":
     st.subheader(f"Chart: {ticker}")
-    TradingViewWidget.render(ticker)
+    TradingViewWidget.render_chart(ticker)
 
 elif nav_view == "news": render_sentiment_timeline(ticker)
 elif nav_view == "events": render_econ_impact_overlay(ticker)
