@@ -30,13 +30,22 @@ footer {{ visibility: hidden; height: 0; }}
 .stAppViewMain,
 [data-testid="stAppViewMain"] {{
     padding-left: 3rem !important;
-    padding-right: 3rem !important; 
+    padding-right: 0 !important; 
     padding-top: 2rem !important;
     padding-bottom: 2rem !important;
-    max-width: 100% !important;
-    width: 100% !important;
+    margin-right: 3rem !important;
+    max-width: calc(100% - 3rem) !important;
+    width: auto !important;
     box-sizing: border-box !important;
-    margin: 0 auto !important;
+    overflow-x: hidden !important;
+}}
+
+/* Force all inner elements to respect right padding */
+[data-testid="stVerticalBlock"] > div, 
+.element-container, 
+.stPlotlyChart {{
+    max-width: 100% !important;
+    box-sizing: border-box !important;
     overflow-x: hidden !important;
 }}
 
@@ -52,13 +61,19 @@ footer {{ visibility: hidden; height: 0; }}
     position: fixed;
     left: 266px; /* rail(52) + panel(214) */
     top: 46px;   /* topbar */
-    right: 2rem !important; /* Physically detach the entire Streamlit view from the right screen edge */
+    right: 0; /* Reset this to 0 so the container spans fully, but pad the inside */
     bottom: 0;
     overflow-y: auto;
     overflow-x: hidden;
     z-index: 20;
     background: transparent !important;
-    padding-right: 1rem !important; 
+    box-sizing: border-box !important;
+}}
+
+/* Apply strict right padding to the direct wrapper containing everything (including charts) */
+[data-testid="stVerticalBlock"] {{
+    padding-right: 3rem !important;
+    max-width: 100% !important;
     box-sizing: border-box !important;
 }}
 
