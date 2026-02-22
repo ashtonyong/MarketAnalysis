@@ -52,13 +52,13 @@ footer {{ visibility: hidden; height: 0; }}
     position: fixed;
     left: 266px; /* rail(52) + panel(214) */
     top: 46px;   /* topbar */
-    right: 0;
+    right: 2rem !important; /* Physically detach the entire Streamlit view from the right screen edge */
     bottom: 0;
     overflow-y: auto;
     overflow-x: hidden;
     z-index: 20;
     background: transparent !important;
-    padding-right: 2rem !important; /* Hard fallback padding on the scroll container itself */
+    padding-right: 1rem !important; 
     box-sizing: border-box !important;
 }}
 
