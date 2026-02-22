@@ -7,7 +7,7 @@ from datetime import datetime
 import time
 
 # --- STYLES & CONFIG ---
-st.set_page_config(layout="wide", page_title="VP Terminal v2.4 (Fixed)", initial_sidebar_state="expanded")
+st.set_page_config(layout="wide", page_title="VP Terminal v2.5 (Fixed)", initial_sidebar_state="expanded")
 import styles
 import time
 # Force reload of CSS by treating it as dynamic injection

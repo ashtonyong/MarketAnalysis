@@ -54,8 +54,20 @@ html body [data-testid="stTable"] {{
 /* Ensure the custom shell is visible */
 #app {{
     position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
+    top: 0; left: 0; right: 3rem !important; bottom: 0;
     z-index: 10;
+}}
+
+/* THE VISIBLE PILLAR SHIELD (User Requested) */
+#right-gap-pillar {{
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 3rem;
+    background: #0b0f19; /* Matches terminal dark theme */
+    z-index: 999999;
+    pointer-events: none;
 }}
 
 /* Make Streamlit elements sit on top of the shell but appear as if inside #main */
@@ -63,14 +75,14 @@ html body [data-testid="stTable"] {{
     position: fixed;
     left: 266px; /* rail(52) + panel(214) */
     top: 46px;   /* topbar */
-    right: 0;
+    right: 3rem !important; /* Move entire viewport 3rem left to reveal the pillar */
     bottom: 0;
     overflow-y: auto;
     overflow-x: hidden;
     z-index: 20;
     background: transparent !important;
-    padding-left: 3rem !important;   /* FOOLPROOF MARGINS */
-    padding-right: 3rem !important;  /* FOOLPROOF MARGINS */
+    padding-left: 3rem !important;   /* Keep inner left padding balanced */
+    padding-right: 0 !important;     /* Right padding is now handled by the pillar gap */
     box-sizing: border-box !important;
 }}
 
