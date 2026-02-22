@@ -28,23 +28,25 @@ html body .appview-container .main .block-container,
 html body [data-testid="stAppViewContainer"] [data-testid="stMain"] [data-testid="stMainBlockContainer"],
 html body [data-testid="stAppViewMain"] > div > div,
 html body .stApp > header + .main > .block-container {{
-    padding-left: 0 !important;
+    padding-left: 3rem !important; /* Internal padding */
     padding-right: 0 !important;
     margin-left: 0 !important;
     margin-right: 0 !important;
     padding-top: 2rem !important;
     padding-bottom: 2rem !important;
-    max-width: 100% !important;
     width: 100% !important;
+    max-width: calc(100vw - 266px - 3rem) !important; /* Force JS width calculation to stop 3rem before screen edge */
     box-sizing: border-box !important;
 }}
 
 /* For Plotly charts escaping the bounds */
 html body [data-testid="stVerticalBlock"] > div, 
 html body .element-container, 
-html body .stPlotlyChart {{
-    max-width: 100% !important;
+html body .stPlotlyChart,
+html body [data-testid="stDataFrame"],
+html body [data-testid="stTable"] {{
     width: 100% !important;
+    max-width: 100% !important;
     box-sizing: border-box !important;
     overflow-x: hidden !important;
 }}
