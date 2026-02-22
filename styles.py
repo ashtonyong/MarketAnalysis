@@ -24,17 +24,29 @@ def get_css():
 }}
 footer {{ visibility: hidden; height: 0; }}
 
-.block-container, 
-[data-testid="block-container"], 
-[data-testid="stMainBlockContainer"] {{
-    width: calc(100% - 6rem) !important;
-    max-width: calc(100% - 6rem) !important;
-    margin-left: 3rem !important;
-    margin-right: 3rem !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
+html body .appview-container .main .block-container,
+html body [data-testid="stAppViewContainer"] [data-testid="stMain"] [data-testid="stMainBlockContainer"],
+html body [data-testid="stAppViewMain"] > div > div,
+html body .stApp > header + .main > .block-container {{
+    padding-left: 3rem !important;
+    padding-right: 3rem !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
     padding-top: 2rem !important;
     padding-bottom: 2rem !important;
+    max-width: 100% !important;
+    width: auto !important;
+    box-sizing: border-box !important;
+}}
+
+/* For Plotly charts escaping the bounds */
+html body [data-testid="stVerticalBlock"] > div, 
+html body .element-container, 
+html body .stPlotlyChart {{
+    max-width: 100% !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
 }}
 
 /* Ensure the custom shell is visible */

@@ -240,7 +240,7 @@ function renderNav() {
     });
 
     html += `</div>
-    <div class="nav-footer"><span class="nav-ver">VP Terminal v2.3</span></div>`;
+    <div class="nav-footer"><span class="nav-ver">VP Terminal v2.4</span></div>`;
 
     panel.innerHTML = html;
 
