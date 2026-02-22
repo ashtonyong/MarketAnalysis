@@ -26,27 +26,15 @@ footer {{ visibility: hidden; height: 0; }}
 
 .block-container, 
 [data-testid="block-container"], 
-[data-testid="stMainBlockContainer"],
-.stAppViewMain,
-[data-testid="stAppViewMain"] {{
-    padding-left: 3rem !important;
-    padding-right: 0 !important; 
+[data-testid="stMainBlockContainer"] {{
+    width: calc(100% - 6rem) !important;
+    max-width: calc(100% - 6rem) !important;
+    margin-left: 3rem !important;
+    margin-right: 3rem !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
     padding-top: 2rem !important;
     padding-bottom: 2rem !important;
-    margin-right: 3rem !important;
-    max-width: calc(100% - 3rem) !important;
-    width: auto !important;
-    box-sizing: border-box !important;
-    overflow-x: hidden !important;
-}}
-
-/* Force all inner elements to respect right padding */
-[data-testid="stVerticalBlock"] > div, 
-.element-container, 
-.stPlotlyChart {{
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-    overflow-x: hidden !important;
 }}
 
 /* Ensure the custom shell is visible */
@@ -61,20 +49,12 @@ footer {{ visibility: hidden; height: 0; }}
     position: fixed;
     left: 266px; /* rail(52) + panel(214) */
     top: 46px;   /* topbar */
-    right: 0; /* Reset this to 0 so the container spans fully, but pad the inside */
+    right: 0;
     bottom: 0;
     overflow-y: auto;
     overflow-x: hidden;
     z-index: 20;
     background: transparent !important;
-    box-sizing: border-box !important;
-}}
-
-/* Apply strict right padding to the direct wrapper containing everything (including charts) */
-[data-testid="stVerticalBlock"] {{
-    padding-right: 3rem !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
 }}
 
 /* CRITICAL: Ensure actual metrics/charts are above the fixed #app shell */
